@@ -1,2 +1,2 @@
 window.DIMASHQI_SUPABASE_URL = 'https://qhwuurejyhvyyyvdeqrf.supabase.co';
-window.DIMASHQI_SUPABASE_ANON_KEY = 'ضع_مفتاح_publishable_الخاص_بك_هنا';
+window.DIMASHQI_SUPABASE_ANON_KEY = sb_publishable_ukyZ_4aHz3DCw6OLz-VB0A_-wqXaz-x
