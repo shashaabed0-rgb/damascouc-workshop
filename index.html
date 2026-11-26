@@ -1206,7 +1206,7 @@
     <small style="color:#64748b;line-height:1.6">يجب أن ينشئ كل موظف حسابه الخاص. يمكن للمدير تعطيل التسجيل العام لاحقاً من إعدادات Supabase بعد إنشاء الحسابات المطلوبة.</small>
   </div>
 </div>
-<div id="accountPill" class="account-pill"><span id="accountEmail"></span> · <button onclick="signOutUser()" style="background:none;border:0;color:#bae6fd;font-weight:800;cursor:pointer">خروج</button></div>
+<div id="accountPill" class="account-pill"><span id="accountEmail"></span> · <span id="syncStatus" role="status" aria-live="polite">غير متصل</span> · <button onclick="signOutUser()" style="background:none;border:0;color:#bae6fd;font-weight:800;cursor:pointer">خروج</button></div>
 
 
 <div class="app-container">
@@ -4343,6 +4343,10 @@
     if (key === 'dimashqi_devices' && syncReady && !applyingRemoteData) scheduleSharedSync();
   };
 
+  function setSyncStatus(message, isError = false) {
+    const el = document.getElementById('syncStatus');
+    if (el) { el.textContent = message; el.style.color = isError ? '#fecaca' : '#bbf7d0'; }
+  }
   function authMessage(message, isError = true) {
     const el = document.getElementById('authMessage');
     if (el) { el.textContent = message || ''; el.style.color = isError ? '#b91c1c' : '#15803d'; }
@@ -4392,15 +4396,18 @@
   }
   async function syncSharedDevices() {
     if (!syncReady || !supabaseClient) return;
+    setSyncStatus('جارٍ المزامنة…');
     try {
       const payload = { id: 'main', devices: JSON.parse(localStorage.getItem('dimashqi_devices') || '[]'), updated_at: new Date().toISOString() };
       const { error } = await supabaseClient.from('shared_workspace').upsert(payload, { onConflict: 'id' });
-      if (error) console.error('Supabase sync:', error);
-    } catch (e) { console.error('تعذرت مزامنة البيانات:', e); }
+      if (error) throw error;
+      setSyncStatus('تمت المزامنة ✓');
+    } catch (e) { console.error('تعذرت مزامنة البيانات:', e); setSyncStatus('فشلت المزامنة: ' + (e.message || 'خطأ'), true); }
   }
   async function loadSharedWorkspace() {
     const client = getSupabase();
     syncReady = false;
+    setSyncStatus('جارٍ تحميل البيانات…');
     const { data, error } = await client.from('shared_workspace').select('devices').eq('id', 'main').maybeSingle();
     if (error) throw error;
     if (data && Array.isArray(data.devices)) {
@@ -4414,6 +4421,7 @@
       await syncSharedDevices();
     }
     syncReady = true;
+    setSyncStatus('متصل ✓');
     updateCounter();
     refreshActiveViews();
     if (sharedChannel) await client.removeChannel(sharedChannel);
@@ -4424,9 +4432,13 @@
           devices = payload.new.devices;
           originalStorageSetItem.call(localStorage, 'dimashqi_devices', JSON.stringify(devices));
           applyingRemoteData = false;
+          setSyncStatus('وصل تحديث من جهاز آخر ✓');
           updateCounter(); refreshActiveViews();
         }
-      }).subscribe();
+      }).subscribe((status) => {
+        if (status === 'SUBSCRIBED') setSyncStatus('متصل - التحديث الفوري يعمل ✓');
+        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setSyncStatus('المزامنة الفورية غير متاحة', true);
+      });
   }
   async function handleAuthSession(session) {
     if (!session) {
