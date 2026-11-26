@@ -1,0 +1,4465 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0284c7">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="مركز الدمشقي">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/jpeg" href="logo.jpg">
+  <link rel="apple-touch-icon" href="logo.jpg">
+  <title id="pageTitleText">مركز الدمشقي للصيانة</title>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    :root {
+      --bg-light: #94a3b8;
+      --app-bg: #e2e8f0;
+      --card-bg: #ffffff;
+      --accent: #0284c7;
+      --accent-dark: #0369a1;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --purple: #7e22ce;
+      --whatsapp: #25d366;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --border: #64748b;
+    }
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    ::-webkit-scrollbar { width: 0px; height: 0px; background: transparent; }
+    
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: var(--bg-light);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 480px;
+      height: 100%;
+      background: var(--app-bg);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 0 20px rgba(0,0,0,0.15);
+    }
+
+    /* تنبيه الحقول الفارغة باللون الأحمر */
+    @keyframes fieldShake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-4px); }
+      40%, 80% { transform: translateX(4px); }
+    }
+    .field-error {
+      border-color: var(--danger) !important;
+      border-width: 2px !important;
+      background-color: #fef2f2 !important;
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.14) !important;
+      animation: fieldShake 0.3s ease;
+    }
+    .device-types-grid.field-error {
+      padding: 6px;
+      border: 2px solid var(--danger) !important;
+      border-radius: 10px;
+      background-color: #fef2f2 !important;
+    }
+    .field-error-msg {
+      color: var(--danger);
+      font-size: 12px;
+      font-weight: 800;
+      margin-top: 3px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      background: var(--card-bg);
+      border-bottom: 2px solid #cbd5e1;
+      gap: 10px;
+      flex-shrink: 0;
+      height: 60px;
+    }
+    .header-right { display: flex; align-items: center; gap: 10px; flex: 1; overflow: hidden; }
+    .menu-btn { background: #f1f5f9; border: 1.5px solid var(--border); color: var(--text); font-size: 20px; cursor: pointer; padding: 4px 10px; border-radius: 8px; flex-shrink: 0; }
+    
+    .logo-container {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 2px solid var(--accent);
+      background: #000000;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 5px rgba(2, 132, 199, 0.25);
+    }
+    .logo-container img { width: 100%; height: 100%; object-fit: cover; }
+
+    .title { font-size: 15.5px; font-weight: 800; color: var(--accent-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .badge { background: #e0f2fe; color: var(--accent-dark); font-weight: 800; padding: 5px 10px; border-radius: 20px; font-size: 11.5px; border: 1.5px solid #7dd3fc; white-space: nowrap; flex-shrink: 0; }
+
+    .top-search-box { margin: 10px 12px 6px 12px; background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 8px; display: flex; gap: 8px; align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05); flex-shrink: 0; }
+    .top-search-input { flex: 1; background: #f8fafc; border: 1.5px solid #94a3b8; color: var(--text); padding: 9px 10px; border-radius: 8px; font-size: 14px; font-weight: 600; }
+    .top-scan-btn { background: #e0f2fe; color: var(--accent-dark); border: 1.5px solid #38bdf8; border-radius: 8px; padding: 8px 12px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 13px; font-weight: bold; min-width: 65px; flex-shrink: 0; }
+    
+    #quickSearchResults {
+      display: none;
+      flex: 1;
+      min-height: 0;
+      padding: 4px 12px 24px 12px;
+      overflow-y: auto;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .search-results-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 2px;
+      font-size: 12.5px;
+      font-weight: 800;
+      color: var(--text-muted);
+    }
+    .clear-search-pill {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: #475569;
+      padding: 3px 10px;
+      border-radius: 14px;
+      font-size: 11.5px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .clear-search-pill:active { background: #fee2e2; color: var(--danger); border-color: #fca5a5; }
+
+    /* شبكة مختصرة وأنيقة للبيانات داخل البطاقات */
+    .quick-meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .quick-meta-pill {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 6px 9px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .quick-meta-pill.cost-pill {
+      background: #faf5ff;
+      border-color: #d8b4fe;
+    }
+    .quick-meta-label { font-size: 11px; font-weight: 700; color: #64748b; }
+    .quick-meta-val { font-size: 13px; font-weight: 800; color: #0f172a; word-break: break-word; }
+    .quick-meta-pill.cost-pill .quick-meta-label { color: #7e22ce; }
+    .quick-meta-pill.cost-pill .quick-meta-val { color: #581c87; font-weight: 900; }
+
+    /* رأس الصفحات بشكل أنيق */
+    .receive-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 2px 4px 4px 4px;
+    }
+    .receive-id-clean {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .receive-id-clean span {
+      font-size: 17px;
+      font-weight: 900;
+      color: var(--accent-dark);
+      direction: ltr;
+      letter-spacing: 0.4px;
+    }
+    .section-count-clean {
+      font-size: 12.5px;
+      font-weight: 800;
+      color: var(--text-muted);
+    }
+
+    .receive-form-card {
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+      box-shadow: 0 3px 10px rgba(15, 23, 42, 0.05);
+    }
+    .receive-form-card .form-group label {
+      font-size: 12.5px;
+      font-weight: 800;
+      color: #334155;
+      margin-bottom: 1px;
+    }
+    .receive-form-card input,
+    .receive-form-card textarea {
+      background: #f8fafc;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .receive-form-card input:focus,
+    .receive-form-card textarea:focus {
+      background: #ffffff;
+      border-color: var(--accent);
+    }
+
+    /* أزرار أنواع الأجهزة في سطر واحد بجانب بعضها */
+    .device-types-grid {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .device-type-chip-btn {
+      flex: 1 0 auto;
+      background: #f1f5f9;
+      border: 1.5px solid #cbd5e1;
+      color: #334155;
+      padding: 9px 10px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      text-align: center;
+      white-space: nowrap;
+      transition: 0.18s;
+    }
+    .device-type-chip-btn:active { transform: scale(0.97); }
+    .device-type-chip-btn.active-device-type {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent-dark);
+      box-shadow: 0 2px 7px rgba(2, 132, 199, 0.28);
+    }
+    .device-detail-wrap {
+      display: none;
+      margin-top: 6px;
+      background: #f0f9ff;
+      border: 1.5px solid #7dd3fc;
+      border-radius: 10px;
+      padding: 9px;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .device-detail-wrap.open { display: flex; }
+    .device-detail-label {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--accent-dark);
+    }
+    .device-detail-wrap input {
+      background: #ffffff;
+      border-color: #38bdf8;
+    }
+
+    /* إدارة أزرار أنواع الأجهزة في الإعدادات */
+    .device-types-manage-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .device-type-manage-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .device-type-manage-row input {
+      flex: 1;
+      padding: 8px 10px;
+      font-size: 13.5px;
+      font-weight: 700;
+      border-radius: 8px;
+      border: 1.5px solid #cbd5e1;
+      background: #f8fafc;
+    }
+    .btn-mini-del {
+      background: #fee2e2;
+      color: var(--danger);
+      border: 1.5px solid #f87171;
+      border-radius: 8px;
+      padding: 8px 11px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .btn-mini-del:active { background: var(--danger); color: #ffffff; }
+
+    /* القائمة الجانبية المرتبة بنظام الأدراج */
+    .sidebar-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.5);
+      backdrop-filter: blur(2px);
+      z-index: 90;
+      display: none;
+    }
+    .sidebar {
+      position: absolute;
+      top: 0;
+      right: -340px;
+      width: 86%;
+      max-width: 325px;
+      height: 100%;
+      background: #f1f5f9;
+      z-index: 100;
+      transition: right 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+      padding: 12px;
+      border-left: 2px solid #cbd5e1;
+      border-radius: 18px 0 0 18px;
+      box-shadow: -6px 0 24px rgba(15, 23, 42, 0.22);
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      overflow-y: auto;
+    }
+    .sidebar.open { right: 0; }
+    .sidebar-overlay.open { display: block; }
+
+    .sidebar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 9px 11px;
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 12px;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      overflow: hidden;
+      flex: 1;
+    }
+    .sidebar-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      overflow: hidden;
+      border: 2px solid var(--accent);
+      background: #000000;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .sidebar-logo img { width: 100%; height: 100%; object-fit: cover; }
+    .sidebar-title-wrap {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .sidebar-brand-title {
+      font-weight: 800;
+      font-size: 14px;
+      color: var(--accent-dark);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .sidebar-brand-sub {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .sidebar-home-btn {
+      background: linear-gradient(145deg, #0284c7, #0369a1);
+      color: #ffffff;
+      border: none;
+      padding: 11px 14px;
+      border-radius: 11px;
+      font-size: 13.5px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 3px 8px rgba(2, 132, 199, 0.25);
+      flex-shrink: 0;
+      transition: transform 0.15s;
+    }
+    .sidebar-home-btn:active { transform: scale(0.98); }
+
+    .sidebar-direct-btn {
+      width: 100%;
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 12px 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--text);
+      text-align: right;
+      flex-shrink: 0;
+      box-shadow: 0 2px 5px rgba(15, 23, 42, 0.04);
+      transition: transform 0.15s, background 0.15s, border-color 0.15s;
+    }
+    .sidebar-direct-btn:active {
+      transform: scale(0.98);
+      background: #f0f9ff;
+      border-color: var(--accent);
+      color: var(--accent-dark);
+    }
+    .sidebar-direct-btn.debt-btn {
+      border-color: #fca5a5;
+      background: linear-gradient(145deg, #ffffff, #fef2f2);
+      color: #991b1b;
+    }
+    .sidebar-direct-btn.debt-btn:active {
+      background: #fee2e2;
+      border-color: var(--danger);
+    }
+
+    .sidebar-drawer {
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 12px;
+      overflow: hidden;
+      flex-shrink: 0;
+      box-shadow: 0 2px 5px rgba(15, 23, 42, 0.04);
+      transition: border-color 0.2s;
+    }
+    .sidebar-drawer.open { border-color: var(--accent); }
+    .sidebar-drawer-header {
+      width: 100%;
+      background: #ffffff;
+      border: none;
+      padding: 12px 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--text);
+      text-align: right;
+      transition: background 0.2s;
+    }
+    .sidebar-drawer.open .sidebar-drawer-header {
+      background: #f0f9ff;
+      color: var(--accent-dark);
+      border-bottom: 1.5px solid #bae6fd;
+    }
+    .drawer-header-right { display: flex; align-items: center; gap: 8px; }
+    .drawer-icon { font-size: 16px; }
+    .drawer-header-left { display: flex; align-items: center; gap: 7px; }
+    .drawer-mini-badge {
+      background: #e0f2fe;
+      color: var(--accent-dark);
+      font-size: 11px;
+      font-weight: 900;
+      padding: 2px 8px;
+      border-radius: 12px;
+      border: 1px solid #7dd3fc;
+    }
+    .drawer-mini-badge.debt-badge {
+      background: #fee2e2;
+      color: #b91c1c;
+      border-color: #f87171;
+    }
+    .drawer-arrow {
+      font-size: 11px;
+      color: #64748b;
+      transition: transform 0.25s ease;
+    }
+    .sidebar-drawer.open .drawer-arrow {
+      transform: rotate(180deg);
+      color: var(--accent-dark);
+    }
+
+    .sidebar-drawer-content {
+      display: none;
+      padding: 8px;
+      background: #f8fafc;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .sidebar-drawer.open .sidebar-drawer-content { display: flex; }
+
+    /* أدراج صفحة الإعدادات */
+    .settings-drawer {
+      background: var(--card-bg);
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      overflow: hidden;
+      flex-shrink: 0;
+      transition: border-color 0.2s;
+    }
+    .settings-drawer.open { border-color: var(--accent); }
+    .settings-drawer.wa-drawer.open { border-color: #22c55e; }
+    .settings-drawer.types-drawer.open { border-color: #7e22ce; }
+
+    .settings-drawer-header {
+      width: 100%;
+      background: #ffffff;
+      border: none;
+      padding: 13px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      font-size: 14.5px;
+      font-weight: 900;
+      color: var(--accent-dark);
+      text-align: right;
+      transition: background 0.2s;
+    }
+    .settings-drawer.wa-drawer .settings-drawer-header { color: #15803d; }
+    .settings-drawer.types-drawer .settings-drawer-header { color: #6b21a8; }
+
+    .settings-drawer.open .settings-drawer-header {
+      background: #f0f9ff;
+      border-bottom: 1.5px solid #bae6fd;
+    }
+    .settings-drawer.wa-drawer.open .settings-drawer-header {
+      background: #f0fdf4;
+      border-bottom: 1.5px solid #bbf7d0;
+    }
+    .settings-drawer.types-drawer.open .settings-drawer-header {
+      background: #faf5ff;
+      border-bottom: 1.5px solid #d8b4fe;
+    }
+
+    .settings-drawer-arrow {
+      font-size: 12px;
+      color: #475569;
+      transition: transform 0.25s ease;
+    }
+    .settings-drawer.open .settings-drawer-arrow {
+      transform: rotate(180deg);
+      color: var(--accent-dark);
+    }
+    .settings-drawer.wa-drawer.open .settings-drawer-arrow {
+      color: #15803d;
+    }
+    .settings-drawer.types-drawer.open .settings-drawer-arrow {
+      color: #6b21a8;
+    }
+
+    .settings-drawer-body {
+      display: none;
+      padding: 14px;
+      flex-direction: column;
+      gap: 12px;
+      background: #ffffff;
+    }
+    .settings-drawer.open .settings-drawer-body { display: flex; }
+
+    .settings-inner-divider {
+      border: none;
+      border-top: 1.5px dashed #cbd5e1;
+      margin: 4px 0;
+    }
+
+    /* اختيار تطبيق الواتساب (عادي / أعمال) في الإعدادات */
+    .wa-app-selector-box {
+      background: #f0fdf4;
+      border: 1.5px solid #86efac;
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .wa-app-selector-title {
+      font-size: 13px;
+      font-weight: 900;
+      color: #15803d;
+    }
+    .wa-app-btn {
+      background: #ffffff;
+      border: 1.5px solid #94a3b8;
+      color: #334155;
+      padding: 9px 6px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      text-align: center;
+      transition: 0.2s;
+    }
+    .wa-app-btn.active-wa {
+      background: #16a34a;
+      color: #ffffff;
+      border-color: #15803d;
+      box-shadow: 0 2px 6px rgba(22, 163, 74, 0.28);
+    }
+
+    .sidebar-item {
+      background: #ffffff;
+      color: var(--text);
+      border: 1.5px solid #cbd5e1;
+      padding: 10px 11px;
+      border-radius: 9px;
+      text-align: right;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: 0.15s;
+    }
+    .sidebar-item:active {
+      transform: scale(0.98);
+      background: #e0f2fe;
+      border-color: var(--accent);
+    }
+    .sidebar-item-label { display: flex; align-items: center; gap: 8px; }
+    .sidebar-item-arrow { color: #64748b; font-size: 12px; font-weight: bold; }
+
+    .stat-row {
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 9px;
+      padding: 9px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12.5px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+    .stat-row:active { transform: scale(0.98); background: #f0f9ff; }
+    .stat-row.total-stat { border-right: 4px solid var(--success); }
+    .stat-row.shop { border-right: 4px solid var(--accent); }
+    .stat-row.open-stat { border-right: 4px solid var(--warning); }
+    .stat-row.ready-stat { border-right: 4px solid #0284c7; }
+    .stat-row.delivered-stat { border-right: 4px solid #64748b; }
+    .stat-row.debt-stat { border-right: 4px solid var(--danger); }
+    .stat-num { color: var(--accent-dark); font-size: 13px; font-weight: 900; background: #f1f5f9; padding: 2px 8px; border-radius: 12px; border: 1px solid #cbd5e1; min-width: 28px; text-align: center; }
+
+    .type-selector-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 4px; }
+    .type-btn { background: #f1f5f9; border: 1.5px solid #cbd5e1; color: #334155; padding: 9px; border-radius: 10px; font-size: 13.5px; font-weight: 800; cursor: pointer; text-align: center; transition: 0.2s; }
+    .type-btn.active-tech { background: #d97706; color: #ffffff; border-color: #b45309; }
+    .type-btn.active-normal { background: var(--accent); color: #ffffff; border-color: var(--accent-dark); }
+
+    .badge-tech { background: #fef3c7; color: #b45309; border: 1px solid #f59e0b; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: bold; }
+    .badge-normal { background: #e0f2fe; color: #0369a1; border: 1px solid #38bdf8; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: bold; }
+    .badge-debt { background: #fee2e2; color: #b91c1c; border: 1px solid #f87171; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 900; }
+    .badge-cash { background: #dcfce7; color: #15803d; border: 1px solid #4ade80; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 900; }
+
+    .main-content {
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+    }
+    
+    .action-card { background: var(--card-bg); border: 2px solid var(--border); border-radius: 12px; padding: 16px 12px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; box-shadow: 0 3px 8px rgba(0,0,0,0.04); flex-shrink: 0; }
+    .action-card:active { transform: scale(0.98); }
+    .action-card.receive { background: linear-gradient(145deg, #ffffff, #f0f9ff); border-color: #38bdf8; }
+    .action-card.open-file { background: linear-gradient(145deg, #ffffff, #fffbeb); border-color: #fbbf24; }
+    .action-card.deliver { background: linear-gradient(145deg, #ffffff, #f0fdf4); border-color: #4ade80; }
+    .action-icon { font-size: 26px; }
+    .action-title { font-size: 16.5px; font-weight: 800; color: var(--text); }
+    .action-sub { font-size: 12px; color: var(--text-muted); font-weight: 700; }
+
+    .section-view {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      padding: 12px 12px 28px 12px;
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+    }
+    .section-view.active { display: flex; }
+
+    .form-group { display: flex; flex-direction: column; gap: 4px; position: relative; }
+    .form-group label { font-size: 12.5px; font-weight: 800; color: #334155; }
+    input, textarea, select { width: 100%; padding: 10px; border-radius: 8px; border: 1.5px solid #cbd5e1; background: #f8fafc; color: var(--text); font-size: 14px; font-weight: 600; }
+    input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); border-width: 2px; background: #ffffff; }
+    textarea { resize: vertical; min-height: 62px; }
+    .search-bar { display: flex; gap: 6px; flex-shrink: 0; }
+    .scan-btn { background: #e0f2fe; color: var(--accent-dark); border: 1.5px solid #38bdf8; padding: 0 14px; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 13px; white-space: nowrap; flex-shrink: 0; }
+
+    .name-suggestions-box {
+      display: none;
+      background: #ffffff;
+      border: 1.5px solid var(--accent);
+      border-radius: 10px;
+      margin-top: 2px;
+      max-height: 170px;
+      overflow-y: auto;
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
+      z-index: 40;
+    }
+    .name-suggestion-item {
+      padding: 9px 10px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: bold;
+    }
+    .name-suggestion-item:last-child { border-bottom: none; }
+    .name-suggestion-item:active { background: #e0f2fe; }
+
+    .name-devices-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 210px;
+      overflow-y: auto;
+      padding: 2px;
+    }
+    .name-device-choice-card {
+      background: #fffbeb;
+      border: 1.5px solid #f59e0b;
+      border-radius: 8px;
+      padding: 9px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      cursor: pointer;
+      text-align: right;
+    }
+    .name-device-choice-card:active { transform: scale(0.98); background: #fef3c7; }
+    
+    .btn-primary { background: var(--accent); color: white; border: none; padding: 11px; border-radius: 10px; font-size: 14px; font-weight: 800; cursor: pointer; width: 100%; transition: 0.15s; }
+    .btn-success { background: var(--success); color: white; border: none; padding: 11px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.15s; }
+    .btn-warning { background: var(--warning); color: white; border: none; padding: 11px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; width: 100%; }
+    .btn-debt-solid { background: var(--danger); color: white; border: none; padding: 11px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.15s; }
+    .btn-danger { background: #fee2e2; color: var(--danger); border: 1.5px solid #f87171; padding: 9px 10px; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; width: 100%; }
+    .btn-edit { background: #e0f2fe; color: var(--accent-dark); border: 1.5px solid #38bdf8; padding: 9px 10px; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; width: 100%; }
+    
+    .workflow-buttons-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+    }
+    .btn-cost-check {
+      background: #f3e8ff;
+      color: #6b21a8;
+      border: 1.5px solid #c084fc;
+      padding: 9px 4px;
+      border-radius: 9px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      transition: 0.2s;
+    }
+    .btn-cost-check.active-stage {
+      background: #7e22ce;
+      color: #ffffff;
+      border-color: #581c87;
+      box-shadow: 0 2px 8px rgba(126, 34, 206, 0.35);
+    }
+
+    .btn-in-maintenance {
+      background: #e0f2fe;
+      color: #0369a1;
+      border: 1.5px solid #38bdf8;
+      padding: 9px 4px;
+      border-radius: 9px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      transition: 0.2s;
+    }
+    .btn-in-maintenance.active-stage {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #0369a1;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+    }
+
+    .btn-close-file {
+      background: #dcfce7;
+      color: #15803d;
+      border: 1.5px solid #4ade80;
+      padding: 9px 4px;
+      border-radius: 9px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      transition: 0.2s;
+    }
+    .btn-close-file:active { background: #16a34a; color: #ffffff; }
+
+    .quick-cost-popover {
+      display: none;
+      background: #faf5ff;
+      border: 1.5px solid #a855f7;
+      border-radius: 10px;
+      padding: 9px;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .quick-cost-popover.open { display: flex; }
+
+    .btn-share { background: #f1f5f9; color: #0f172a; border: 1.5px solid #cbd5e1; padding: 10px; border-radius: 10px; font-size: 13.5px; font-weight: 800; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; }
+
+    /* مربع رقم الهاتف وبجانبه مربع خاص ومستقل لرمز واتساب خارج مربع الرقم */
+    .phone-wa-row {
+      display: flex;
+      align-items: stretch;
+      gap: 8px;
+    }
+    .phone-info-box {
+      flex: 1;
+      min-width: 0;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 8px;
+      background: #f8fafc;
+      padding: 8px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+    .wa-icon-box-btn {
+      width: 44px;
+      min-height: 40px;
+      border-radius: 9px;
+      background: #25d366;
+      border: 1.5px solid #15803d;
+      color: #ffffff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(22, 163, 74, 0.28);
+      transition: transform 0.15s, background 0.15s;
+    }
+    .wa-icon-box-btn:active {
+      transform: scale(0.93);
+      background: #16a34a;
+    }
+    .wa-icon-box-btn svg {
+      width: 24px;
+      height: 24px;
+      fill: #ffffff;
+      display: block;
+    }
+
+    .actions-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 2px; }
+    .actions-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 2px; }
+
+    .filter-pills { display: flex; gap: 5px; flex-wrap: wrap; flex-shrink: 0; }
+    .filter-pill { background: #ffffff; border: 1.5px solid #94a3b8; color: #334155; padding: 6px 11px; border-radius: 16px; font-size: 12px; font-weight: bold; cursor: pointer; }
+    .filter-pill.active { background: var(--accent-dark); color: #ffffff; border-color: var(--accent-dark); }
+
+    .cards-list-container { display: flex; flex-direction: column; gap: 10px; padding-bottom: 24px; }
+    
+    .device-card {
+      background: var(--card-bg);
+      border: 2px solid #94a3b8;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 3px 8px rgba(15, 23, 42, 0.06);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: all 0.25s ease;
+    }
+    .device-card.card-open { border-color: #f59e0b; }
+    .card-open .card-collapsed-bar { background: linear-gradient(145deg, #fffbeb, #fef3c7); }
+    .card-open .receipt-plain { color: #b45309; }
+
+    .device-card.card-cost-check { border-color: #9333ea; box-shadow: 0 3px 10px rgba(147, 51, 234, 0.14); }
+    .card-cost-check .card-collapsed-bar { background: linear-gradient(145deg, #faf5ff, #f3e8ff); }
+    .card-cost-check .receipt-plain { color: #6b21a8; }
+
+    .device-card.card-maintenance { border-color: #0284c7; box-shadow: 0 3px 10px rgba(2, 132, 199, 0.14); }
+    .card-maintenance .card-collapsed-bar { background: linear-gradient(145deg, #f0f9ff, #e0f2fe); }
+    .card-maintenance .receipt-plain { color: #0369a1; }
+
+    .device-card.card-closed { border-color: #16a34a; }
+    .card-closed .card-collapsed-bar { background: linear-gradient(145deg, #f0fdf4, #dcfce7); }
+    .card-closed .receipt-plain { color: #15803d; }
+
+    .device-card.card-delivered { border-color: #64748b; }
+    .card-delivered .card-collapsed-bar { background: #f8fafc; }
+    .card-delivered .receipt-plain { color: #334155; }
+
+    .device-card.card-debt { border-color: #dc2626; box-shadow: 0 3px 10px rgba(220, 38, 38, 0.14); }
+    .card-debt .card-collapsed-bar { background: linear-gradient(145deg, #fef2f2, #fee2e2); }
+    .card-debt .receipt-plain { color: #b91c1c; }
+
+    .card-collapsed-bar {
+      padding: 11px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      gap: 8px;
+    }
+
+    .collapsed-main-info { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+    .collapsed-top-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .receipt-plain { font-size: 14.5px; font-weight: 900; direction: ltr; display: inline-block; }
+
+    .collapsed-cust-name { font-size: 14.5px; font-weight: 800; color: #0f172a; }
+    .return-text-plain { font-size: 11.5px; font-weight: 800; color: var(--danger); }
+    .collapsed-device-name { font-size: 13px; font-weight: 700; color: #334155; word-break: break-word; }
+
+    .collapsed-left-side {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11.5px;
+      font-weight: 800;
+      padding: 4px 8px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.9);
+      border: 1px solid rgba(0,0,0,0.08);
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .status-plain-open { color: #b45309; }
+    .status-plain-cost { color: #6b21a8; }
+    .status-plain-maint { color: #0369a1; }
+    .status-plain-closed { color: #15803d; }
+    .status-plain-delivered { color: #475569; }
+    .status-plain-debt { color: #b91c1c; }
+
+    .expand-arrow { font-size: 11px; font-weight: bold; color: #475569; transition: transform 0.25s ease; }
+
+    .card-body-content {
+      display: none;
+      padding: 11px;
+      border-top: 1.5px solid #cbd5e1;
+      background: #ffffff;
+      flex-direction: column;
+      gap: 9px;
+    }
+    .device-card.expanded .card-body-content { display: flex; }
+    .device-card.expanded .expand-arrow { transform: rotate(180deg); color: var(--accent-dark); }
+
+    .info-table { border: 1.5px solid #cbd5e1; border-radius: 8px; overflow: hidden; background: #ffffff; }
+    .info-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+    .info-row:last-child { border-bottom: none; }
+    .info-row:nth-child(even) { background: #f8fafc; }
+    .info-key { font-weight: bold; color: #334155; font-size: 12.5px; min-width: 85px; }
+    .info-val { font-weight: 800; color: #0f172a; font-size: 13.5px; text-align: left; word-break: break-word; }
+    .date-text { color: #0369a1; direction: ltr; display: inline-block; font-weight: 900; font-size: 13px; }
+
+    .section-block { border-radius: 8px; padding: 8px 11px; display: flex; flex-direction: row; justify-content: space-between; align-items: center; gap: 8px; }
+    .section-block-title { font-size: 12.5px; font-weight: 800; white-space: nowrap; }
+    .section-block-text { font-size: 13.5px; font-weight: 700; color: #0f172a; text-align: left; word-break: break-word; }
+
+    .block-device { background: #f0f9ff; border: 1.5px solid #7dd3fc; border-right: 4px solid #0284c7; }
+    .block-device .section-block-title { color: #0369a1; }
+
+    .block-issue { background: #fffbeb; border: 1.5px solid #fcd34d; border-right: 4px solid #d97706; }
+    .block-issue .section-block-title { color: #b45309; }
+
+    .block-work { background: #f0fdf4; border: 1.5px solid #86efac; border-right: 4px solid #16a34a; flex-direction: column; align-items: flex-start; }
+    .block-work .section-block-title { color: #15803d; }
+    .block-work .section-block-text { text-align: right; white-space: pre-wrap; }
+
+    .block-cost { background: #faf5ff; border: 1.5px solid #d8b4fe; border-right: 4px solid #9333ea; flex-direction: row; justify-content: space-between; align-items: center; }
+    .block-cost .section-block-title { color: #6b21a8; font-size: 12.5px; }
+    .block-cost .section-block-text { color: #581c87; font-size: 14.5px; font-weight: 900; }
+
+    .history-container { background: #f1f5f9; border: 1.5px solid #94a3b8; border-radius: 8px; padding: 6px; display: flex; flex-direction: column; gap: 5px; }
+    .history-title { font-size: 12px; font-weight: 800; color: #0f172a; padding-bottom: 2px; }
+    .history-item { background: #ffffff; border: 1.5px solid #94a3b8; border-right: 3px solid #475569; border-radius: 6px; overflow: hidden; }
+    .history-item.is-return-item { border-right-color: var(--danger); }
+    .history-item-header { padding: 7px 10px; display: flex; justify-content: space-between; align-items: center; font-weight: 800; color: #0f172a; font-size: 12.5px; cursor: pointer; background: #f8fafc; }
+    .history-item.is-return-item .history-item-header { background: #fff5f5; }
+    .history-item-body { display: none; padding: 7px 10px; border-top: 1px dashed #cbd5e1; flex-direction: column; gap: 4px; background: #ffffff; }
+    .history-item.expanded .history-item-body { display: flex; }
+    .history-row { font-size: 12.5px; color: #0f172a; }
+
+    .admin-edit-delete-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding-top: 6px; border-top: 1px dashed #cbd5e1; margin-top: 2px; }
+
+    .settings-box { background: var(--card-bg); border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+    .settings-sub-hint { font-size: 12px; font-weight: 700; color: var(--text-muted); margin-top: -4px; }
+
+    /* تنسيق عناصر تعديل تقرير الواتساب في الإعدادات */
+    .wa-fields-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .wa-field-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #f8fafc;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 9px;
+      padding: 7px 9px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .wa-field-row.active-row {
+      background: #f0fdf4;
+      border-color: #86efac;
+    }
+    .wa-check-wrap {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .wa-check-wrap input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      accent-color: #16a34a;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .wa-static-label {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--text);
+      cursor: pointer;
+      flex: 1;
+    }
+    .wa-label-input {
+      flex: 1;
+      padding: 6px 8px;
+      font-size: 13px;
+      font-weight: 700;
+      border: 1.5px solid #94a3b8;
+      border-radius: 7px;
+      background: #ffffff;
+    }
+    .wa-preview-card {
+      background: #dcfce7;
+      border: 1.5px solid #22c55e;
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .wa-preview-header {
+      font-size: 12px;
+      font-weight: 900;
+      color: #15803d;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .wa-preview-text {
+      background: #ffffff;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 9px 10px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #0f172a;
+      white-space: pre-wrap;
+      line-height: 1.65;
+      word-break: break-word;
+    }
+
+    .logo-preview-wrap {
+      width: 80px;
+      height: 80px;
+      border-radius: 12px;
+      border: 2px dashed var(--accent);
+      background: #000000;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      color: #ffffff;
+      font-size: 11px;
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .logo-preview-wrap img { width: 100%; height: 100%; object-fit: cover; }
+
+    .scanner-modal-overlay { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.75); z-index: 300; display: none; align-items: center; justify-content: center; padding: 12px; }
+    .scanner-modal-overlay.open { display: flex; }
+    .scanner-center-box { width: 100%; max-width: 350px; background: #ffffff; border: 2px solid var(--accent); border-radius: 14px; padding: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: flex; flex-direction: column; gap: 8px; text-align: center; }
+    .scanner-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; }
+    #qr-reader { width: 100%; min-height: 220px; border-radius: 10px; overflow: hidden; background: #0f172a; position: relative; }
+    .scanner-hint { font-size: 12.5px; font-weight: bold; color: #0369a1; background: #e0f2fe; padding: 6px; border-radius: 6px; }
+
+    .modal-overlay { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.6); z-index: 200; display: none; align-items: center; justify-content: center; padding: 12px; }
+    .modal-overlay.open { display: flex; }
+    #customConfirmModal { z-index: 260; }
+    #deliveryPaymentModal { z-index: 250; }
+    .modal-box { background: var(--card-bg); width: 100%; max-width: 400px; max-height: 88vh; overflow-y: auto; border-radius: 14px; padding: 16px; border: 2px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.25); display: flex; flex-direction: column; gap: 12px; text-align: right; }
+    .modal-title { font-size: 15px; font-weight: 800; color: var(--accent-dark); display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 8px; }
+    .modal-actions { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
+    
+    .confirm-modal-box { max-width: 340px; text-align: center; gap: 14px; padding: 20px 16px; }
+    .confirm-icon { font-size: 36px; margin-bottom: -4px; }
+    .confirm-msg { font-size: 15px; font-weight: 800; color: #0f172a; line-height: 1.5; }
+    .confirm-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+
+    .delivery-summary-box {
+      background: #f8fafc;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #334155;
+      line-height: 1.7;
+    }
+
+    .debt-banner {
+      background: #fef2f2;
+      border: 1.5px solid #fca5a5;
+      border-right: 4px solid var(--danger);
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 13px;
+      font-weight: 800;
+      color: #991b1b;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .mode-banner { display: none; padding: 8px 10px; border-radius: 10px; font-size: 12px; font-weight: 800; text-align: center; }
+    .mode-banner.return-mode { background: #fef2f2; border: 1.5px solid #f87171; color: #b91c1c; }
+    .mode-banner.new-linked-mode { background: #e0f2fe; border: 1.5px solid #38bdf8; color: #0369a1; }
+
+    .auth-overlay{position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,.72);display:flex;align-items:center;justify-content:center;padding:18px}
+    .auth-card{width:100%;max-width:420px;background:#fff;border-radius:18px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.25);direction:rtl}
+    .auth-card h2{font-size:22px;margin-bottom:8px;color:#0f172a}.auth-card p{color:#475569;font-size:13px;line-height:1.7;margin-bottom:16px}
+    .auth-card label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}.auth-card input{width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:9px;font-size:15px;direction:ltr;text-align:left}
+    .auth-actions{display:flex;gap:8px;margin-top:18px}.auth-actions button{flex:1;padding:12px;border:0;border-radius:9px;background:#0284c7;color:#fff;font-weight:800;cursor:pointer}.auth-actions button.secondary{background:#e2e8f0;color:#0f172a}
+    #authMessage{min-height:22px;margin-top:10px;color:#b91c1c;font-size:13px}.account-pill{position:fixed;z-index:1000;top:66px;left:8px;background:#0f172a;color:#fff;padding:6px 9px;border-radius:20px;font-size:11px;display:none;max-width:190px}
+
+  </style>
+</head>
+<body>
+
+<div id="authOverlay" class="auth-overlay">
+  <div class="auth-card">
+    <h2>مركز الدمشقي للصيانة</h2>
+    <p>سجّل الدخول بحساب الموظف للوصول إلى ملفات المركز ومزامنتها بين الأجهزة.</p>
+    <label for="authEmail">البريد الإلكتروني</label><input id="authEmail" type="email" autocomplete="username" placeholder="name@example.com">
+    <label for="authPassword">كلمة المرور</label><input id="authPassword" type="password" autocomplete="current-password" placeholder="••••••••">
+    <div class="auth-actions"><button type="button" onclick="signInUser()">تسجيل الدخول</button><button type="button" class="secondary" onclick="signUpUser()">إنشاء حساب موظف</button></div>
+    <div id="authMessage" role="status"></div>
+    <small style="color:#64748b;line-height:1.6">يجب أن ينشئ كل موظف حسابه الخاص. يمكن للمدير تعطيل التسجيل العام لاحقاً من إعدادات Supabase بعد إنشاء الحسابات المطلوبة.</small>
+  </div>
+</div>
+<div id="accountPill" class="account-pill"><span id="accountEmail"></span> · <button onclick="signOutUser()" style="background:none;border:0;color:#bae6fd;font-weight:800;cursor:pointer">خروج</button></div>
+
+
+<div class="app-container">
+  <div class="header">
+    <div class="header-right">
+      <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+      <div class="logo-container" id="headerLogoContainer">
+        <img id="appLogoImg" src="logo.jpg" alt="شعار المحل" onerror="this.parentElement.style.display='none'">
+      </div>
+      <div class="title" id="appTitleText">مركز الدمشقي للصيانة</div>
+    </div>
+    <div class="badge" id="deviceCount">بالمحل: 0 جهاز</div>
+  </div>
+
+  <div class="scanner-modal-overlay" id="scannerModal">
+    <div class="scanner-center-box">
+      <div class="scanner-header">
+        <span style="font-size:14px; font-weight:800; color:var(--accent-dark);">وجّه الكاميرا نحو الباركود أو الكود الطويل</span>
+        <button class="btn-danger" style="width:auto; padding:4px 10px;" onclick="stopScan()">إغلاق ✕</button>
+      </div>
+      <div id="qr-reader"></div>
+      <div class="scanner-hint" id="scannerStatusText">جاري قراءة الكود بسرعة عالية...</div>
+    </div>
+  </div>
+
+  <div class="top-search-box" id="topSearchContainer">
+    <input type="text" id="mainSearchInput" class="top-search-input" placeholder="ابحث بالاسم، رقم الوصل، أو الباركود..." oninput="handleQuickSearch()">
+    <button class="top-scan-btn" onclick="startScan('mainSearchInput', handleQuickSearch)">
+      <span>📷</span>
+      <span>مسح</span>
+    </button>
+  </div>
+  <div id="quickSearchResults"></div>
+
+  <!-- القائمة الجانبية -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <div class="sidebar-logo" id="sidebarLogoContainer">
+          <img id="sidebarLogoImg" src="logo.jpg" alt="شعار المحل" onerror="this.parentElement.style.display='none'">
+        </div>
+        <div class="sidebar-title-wrap">
+          <span class="sidebar-brand-title" id="sidebarTitleText">مركز الدمشقي للصيانة</span>
+          <span class="sidebar-brand-sub">القائمة الرئيسية</span>
+        </div>
+      </div>
+      <button class="menu-btn" onclick="toggleSidebar()">✕</button>
+    </div>
+
+    <button class="sidebar-home-btn" onclick="goHome(); toggleSidebar();">
+      <span>🏠 الصفحة الرئيسية</span>
+      <span>◀</span>
+    </button>
+
+    <!-- درج إحصائيات المحل -->
+    <div class="sidebar-drawer" id="drawerStats">
+      <button type="button" class="sidebar-drawer-header" onclick="toggleSidebarDrawer('drawerStats')">
+        <span class="drawer-header-right">
+          <span class="drawer-icon">📊</span>
+          <span>إحصائيات المحل</span>
+        </span>
+        <span class="drawer-header-left">
+          <span class="drawer-mini-badge" id="sidebarShopBadge">بالمحل: 0</span>
+          <span class="drawer-arrow">▼</span>
+        </span>
+      </button>
+      <div class="sidebar-drawer-content">
+        <div class="stat-row total-stat" onclick="openFilteredAllDevices('all')">
+          <span>الأجهزة المستلمة (كامل)</span>
+          <span class="stat-num" id="statTotalReceived">0</span>
+        </div>
+        <div class="stat-row shop" onclick="openFilteredAllDevices('in_shop')">
+          <span>الموجودة بالمحل حالياً</span>
+          <span class="stat-num" id="statInShop">0</span>
+        </div>
+        <div class="stat-row open-stat" onclick="openFilteredAllDevices('open')">
+          <span>قيد الصيانة (المفتوحة)</span>
+          <span class="stat-num" id="statOpenMaintenance">0</span>
+        </div>
+        <div class="stat-row ready-stat" onclick="openFilteredAllDevices('closed')">
+          <span>جاهزة بانتظار التسليم</span>
+          <span class="stat-num" id="statReadyDelivery">0</span>
+        </div>
+        <div class="stat-row delivered-stat" onclick="openFilteredAllDevices('delivered')">
+          <span>الأجهزة المسلّمة للزبائن</span>
+          <span class="stat-num" id="statDelivered">0</span>
+        </div>
+        <div class="stat-row debt-stat" onclick="openDebtDevicesSection()">
+          <span style="color:#b91c1c;">ملفات الدين</span>
+          <span class="stat-num" id="statDebtCount" style="color:#b91c1c; background:#fef2f2; border-color:#fca5a5;">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- جميع الأجهزة المستلمة -->
+    <button type="button" class="sidebar-direct-btn" onclick="openFilteredAllDevices('all')">
+      <span class="drawer-header-right">
+        <span class="drawer-icon">📁</span>
+        <span>جميع الأجهزة المستلمة</span>
+      </span>
+      <span class="drawer-header-left">
+        <span class="drawer-mini-badge" id="sidebarAllCountBadge">0</span>
+        <span class="sidebar-item-arrow">◀</span>
+      </span>
+    </button>
+
+    <!-- ملفات الدين (الأجهزة المسلّمة بالدين) -->
+    <button type="button" class="sidebar-direct-btn debt-btn" onclick="openDebtDevicesSection()">
+      <span class="drawer-header-right">
+        <span class="drawer-icon">📒</span>
+        <span>ملفات الدين</span>
+      </span>
+      <span class="drawer-header-left">
+        <span class="drawer-mini-badge debt-badge" id="sidebarDebtCountBadge">0</span>
+        <span class="sidebar-item-arrow" style="color:#b91c1c;">◀</span>
+      </span>
+    </button>
+
+    <!-- درج الإعدادات والمزامنة -->
+    <div class="sidebar-drawer" id="drawerSettings">
+      <button type="button" class="sidebar-drawer-header" onclick="toggleSidebarDrawer('drawerSettings')">
+        <span class="drawer-header-right">
+          <span class="drawer-icon">⚙️</span>
+          <span>الإعدادات والنسخ الاحتياطي</span>
+        </span>
+        <span class="drawer-header-left">
+          <span class="drawer-arrow">▼</span>
+        </span>
+      </button>
+      <div class="sidebar-drawer-content">
+        <button class="sidebar-item" onclick="openSection('settingsSection'); toggleSidebar();">
+          <span class="sidebar-item-label"><span>🛠️</span><span>إعدادات البرنامج</span></span>
+          <span class="sidebar-item-arrow">◀</span>
+        </button>
+        <button class="sidebar-item" onclick="openSection('syncSection'); toggleSidebar();">
+          <span class="sidebar-item-label"><span>💾</span><span>المزامنة والنسخ الاحتياطي</span></span>
+          <span class="sidebar-item-arrow">◀</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة التأكيد العامة -->
+  <div class="modal-overlay" id="customConfirmModal">
+    <div class="modal-box confirm-modal-box">
+      <div class="confirm-icon" id="confirmModalIcon">⚠️</div>
+      <div class="confirm-msg" id="confirmModalMsg">هل أنت متأكد من اتمام هذه العملية؟</div>
+      <div class="confirm-btns" id="confirmModalBtnsContainer">
+        <button class="btn-success" id="confirmModalYesBtn">نعم، تأكيد</button>
+        <button class="btn-share" onclick="closeCustomConfirmModal()">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة اختيار طريقة الدفع عند تسليم الجهاز (كاش / دين) -->
+  <div class="modal-overlay" id="deliveryPaymentModal">
+    <div class="modal-box confirm-modal-box" style="border-color: var(--success);">
+      <div class="confirm-icon">🤝</div>
+      <div class="confirm-msg">تسليم الجهاز رقم <span id="deliveryModalReceiptLabel" style="color:var(--accent-dark); font-weight:900;"></span></div>
+      <div class="delivery-summary-box" id="deliveryModalSummary"></div>
+      <div style="font-size:13.5px; font-weight:800; color:#0f172a;">اختر طريقة الدفع لتأكيد التسليم:</div>
+      <input type="hidden" id="deliveryPaymentDeviceIndex">
+      <div class="confirm-btns">
+        <button type="button" class="btn-success" onclick="confirmDeliveryWithPayment('cash')">💵 كاش</button>
+        <button type="button" class="btn-debt-solid" onclick="confirmDeliveryWithPayment('debt')">📝 دين</button>
+      </div>
+      <button type="button" class="btn-share" onclick="closeDeliveryPaymentModal()">إلغاء</button>
+    </div>
+  </div>
+
+  <!-- نافذة انتهاء الصيانة -->
+  <div class="modal-overlay" id="closeFileModal">
+    <div class="modal-box" style="border-color: var(--success);">
+      <div class="modal-title" style="color: var(--success);">
+        <span>✅ انتهاء الصيانة - رقم <span id="closeFileReceiptLabel" style="font-weight:900;"></span></span>
+        <button class="menu-btn" onclick="hideCloseFileModal()">✕</button>
+      </div>
+      <input type="hidden" id="closeFileDeviceIndex">
+
+      <div style="font-size:13px; font-weight:bold; color:#334155;" id="closeFileDeviceSummary"></div>
+
+      <div class="form-group">
+        <label style="color:#15803d;">القطع المستبدلة / الصيانة</label>
+        <textarea id="closeFilePartsInput" placeholder="تفاصيل الصيانة..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label style="color:#6b21a8;">التكلفة النهائية</label>
+        <input type="text" id="closeFileFinalCostInput" placeholder="المبلغ...">
+      </div>
+
+      <div class="actions-row" style="margin-top:6px;">
+        <button class="btn-success" onclick="confirmCloseDeviceFileModal()">تأكيد الانتهاء</button>
+        <button class="btn-share" onclick="hideCloseFileModal()">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="duplicateModal">
+    <div class="modal-box">
+      <div class="modal-title">
+        <span>تنبيه: هذا الباركود مسجل مسبقاً!</span>
+        <button class="menu-btn" onclick="closeDuplicateModal()">✕</button>
+      </div>
+      <div id="duplicateDeviceDetails"></div>
+      <div style="font-size:13.5px; font-weight:bold; color:var(--text);">كيف تريد التعامل مع هذا الجهاز؟</div>
+      <div class="modal-actions">
+        <button class="btn-warning" onclick="handleDuplicateChoice('return')">استلام كمرتجع (على نفس الملف السابق)</button>
+        <button class="btn-primary" onclick="handleDuplicateChoice('new')">فتح ملف جديد (مع إرفاق السجل السابق)</button>
+        <button class="btn-share" onclick="closeDuplicateModal()">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="duplicateNameModal">
+    <div class="modal-box">
+      <div class="modal-title">
+        <span>هذا الاسم مسجل مسبقاً!</span>
+        <button class="menu-btn" onclick="closeDuplicateNameModal()">✕</button>
+      </div>
+      <div id="duplicateNameSummary"></div>
+
+      <button class="btn-primary" onclick="handleNameNewDeviceChoice()">
+        ➕ جهاز جديد لهذا الاسم (إضافة الاسم والهاتف فقط)
+      </button>
+
+      <div style="font-size:12.5px; font-weight:800; color:#b45309; margin-top:4px;">
+        أو اختر جهازاً سابقاً لاستلامه كمرتجع (يضيف نوع الجهاز والهاتف):
+      </div>
+      <div id="duplicateNameDevicesList" class="name-devices-list"></div>
+
+      <button class="btn-share" onclick="closeDuplicateNameModal()">إلغاء وإكمال الكتابة يدوياً</button>
+    </div>
+  </div>
+
+  <!-- نافذة تعديل الملف -->
+  <div class="modal-overlay" id="editDeviceModal">
+    <div class="modal-box">
+      <div class="modal-title">
+        <span>تعديل ملف رقم <span id="editReceiptLabel" style="color:var(--accent-dark); font-weight:900;"></span></span>
+        <button class="menu-btn" onclick="closeEditModal()">✕</button>
+      </div>
+      <input type="hidden" id="editDeviceIndex">
+
+      <div class="form-group">
+        <label>الباركود</label>
+        <div class="search-bar">
+          <input type="text" id="editBarcode" placeholder="اختياري">
+          <button class="scan-btn" onclick="startScan('editBarcode')">📷 مسح</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>اسم الزبون</label>
+        <input type="text" id="editName">
+      </div>
+      <div class="form-group">
+        <label>رقم الهاتف</label>
+        <input type="tel" id="editPhone" placeholder="09xxxxxxxx">
+      </div>
+      <div class="form-group">
+        <label>نوع الجهاز</label>
+        <input type="text" id="editDeviceType">
+      </div>
+      <div class="form-group">
+        <label>تصنيف الزبون</label>
+        <select id="editCustomerType">
+          <option value="زبون">زبون</option>
+          <option value="فني">فني</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>العطل</label>
+        <textarea id="editIssue"></textarea>
+      </div>
+      <div class="form-group">
+        <label>القطع المستبدلة / الصيانة</label>
+        <textarea id="editWorkDone"></textarea>
+      </div>
+      <div class="form-group">
+        <label>التكلفة</label>
+        <input type="text" id="editCost">
+      </div>
+      <div class="form-group">
+        <label>حالة الملف</label>
+        <select id="editStatus">
+          <option value="open">ملف مفتوح (قيد الصيانة)</option>
+          <option value="closed">انتهاء الصيانة (جاهز للتسليم)</option>
+          <option value="delivered">تم التسليم</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>حالة الدفع (عند التسليم)</label>
+        <select id="editPaymentStatus">
+          <option value="">غير محدد</option>
+          <option value="cash">كاش</option>
+          <option value="debt">دين</option>
+        </select>
+      </div>
+      <div class="actions-row">
+        <button type="button" class="btn-success" onclick="saveEditedDevice()">💾 حفظ التعديلات</button>
+        <button type="button" class="btn-share" onclick="closeEditModal()">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-content" id="homeSection">
+    <div class="action-card receive" onclick="openSection('receiveSection')">
+      <div class="action-icon">➕</div>
+      <div class="action-title">استلام جهاز جديد</div>
+      <div class="action-sub">تسجيل جهاز جديد أو مرتجع (1000+)</div>
+    </div>
+
+    <div class="action-card open-file" onclick="openSection('openFileSection')">
+      <div class="action-icon">📂</div>
+      <div class="action-title">فتح ملف جهاز</div>
+      <div class="action-sub">فحص التكلفة • قيد الصيانة • انتهاء الصيانة</div>
+    </div>
+
+    <div class="action-card deliver" onclick="openSection('deliverSection')">
+      <div class="action-icon">✅</div>
+      <div class="action-title">قائمة تسليم الجهاز</div>
+      <div class="action-sub">إشعار التسليم وتأكيد التسليم (كاش / دين)</div>
+    </div>
+  </div>
+
+  <!-- صفحة استلام جهاز جديد -->
+  <div class="section-view" id="receiveSection">
+    <div class="receive-header-row">
+      <h3 id="receivePageTitle" style="font-size:16px; color:var(--text);">استلام جهاز جديد</h3>
+      <div class="receive-id-clean">رقم الوصل: <span id="newIdDisplay">1000</span></div>
+    </div>
+    <input type="hidden" id="newId">
+
+    <div class="mode-banner" id="modeBanner"></div>
+    <div id="receivePreviousHistoryBox" style="display:none;"></div>
+
+    <div class="receive-form-card">
+      <div class="form-group">
+        <label>الباركود</label>
+        <div class="search-bar">
+          <input type="text" id="newBarcode" placeholder="اختياري" onchange="checkDuplicateBarcode(this.value)">
+          <button class="scan-btn" onclick="startScan('newBarcode', () => checkDuplicateBarcode(document.getElementById('newBarcode').value))">📷 مسح</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>اسم الزبون</label>
+        <input type="text" id="custName" placeholder="الاسم" autocomplete="off" oninput="handleCustomerNameInput(this.value)" onchange="checkExactDuplicateName(this.value)">
+        <div id="nameSuggestionsBox" class="name-suggestions-box"></div>
+      </div>
+
+      <div class="form-group">
+        <label>رقم الهاتف</label>
+        <input type="tel" id="custPhone" placeholder="09xxxxxxxx">
+      </div>
+
+      <!-- أزرار اختيار نوع الجهاز في سطر واحد + مربع الاستطاعة/الماركة -->
+      <div class="form-group">
+        <label>اختر الجهاز</label>
+        <div id="receiveDeviceTypeButtons" class="device-types-grid"></div>
+        <div id="deviceDetailInputWrap" class="device-detail-wrap">
+          <span class="device-detail-label" id="deviceDetailLabel">استطاعة الجهاز أو الماركة:</span>
+          <input type="text" id="deviceDetailInput" placeholder="اكتب الاستطاعة أو الماركة...">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label id="issueLabel">العطل</label>
+        <textarea id="deviceIssue" placeholder="وصف العطل"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>تصنيف الزبون</label>
+        <div class="type-selector-row" style="margin-bottom:0;">
+          <button type="button" class="type-btn active-normal" id="btnNormalCust" onclick="setCustomerType('زبون')">زبون</button>
+          <button type="button" class="type-btn" id="btnTechCust" onclick="setCustomerType('فني')">فني</button>
+        </div>
+        <input type="hidden" id="customerTypeInput" value="زبون">
+      </div>
+
+      <button class="btn-primary" id="saveDeviceBtn" onclick="askSaveNewDevice()" style="margin-top:2px;">حفظ واستلام</button>
+    </div>
+  </div>
+
+  <!-- صفحة فتح ملف جهاز (منظّفة ومرتبة) -->
+  <div class="section-view" id="openFileSection">
+    <div class="receive-header-row">
+      <h3 style="font-size:16px; color:var(--text);">فتح ملف جهاز</h3>
+      <span class="section-count-clean" id="openFilesCountLabel">0 ملف</span>
+    </div>
+    <div class="search-bar">
+      <input type="text" id="searchOpenInput" placeholder="ابحث بالاسم، رقم الوصل، أو الباركود..." oninput="renderOpenDevices()">
+      <button class="scan-btn" onclick="startScan('searchOpenInput', renderOpenDevices)">📷 مسح</button>
+    </div>
+    <div id="openDevicesList" class="cards-list-container"></div>
+  </div>
+
+  <div class="section-view" id="deliverSection">
+    <h3 style="margin-top: 2px;">قائمة تسليم الجهاز</h3>
+    <div class="search-bar">
+      <input type="text" id="searchDeliverInput" placeholder="ابحث بالاسم، رقم الوصل، أو الباركود..." oninput="renderDeliverDevices()">
+      <button class="scan-btn" onclick="startScan('searchDeliverInput', renderDeliverDevices)">📷 باركود</button>
+    </div>
+    <div id="deliverDevicesList" class="cards-list-container"></div>
+  </div>
+
+  <div class="section-view" id="allDevicesSection">
+    <h3 id="allDevicesTitle" style="margin-top: 2px;">جميع الأجهزة المستلمة</h3>
+    <div class="filter-pills">
+      <button class="filter-pill active" id="pill_all" onclick="setAllDevicesFilter('all')">الكل</button>
+      <button class="filter-pill" id="pill_in_shop" onclick="setAllDevicesFilter('in_shop')">بالمحل</button>
+      <button class="filter-pill" id="pill_open" onclick="setAllDevicesFilter('open')">قيد الصيانة</button>
+      <button class="filter-pill" id="pill_closed" onclick="setAllDevicesFilter('closed')">جاهز للتسليم</button>
+      <button class="filter-pill" id="pill_delivered" onclick="setAllDevicesFilter('delivered')">مسلّم</button>
+    </div>
+    <div class="search-bar">
+      <input type="text" id="searchAllInput" placeholder="ابحث بالاسم، رقم الوصل، أو الباركود..." oninput="renderAllDevices()">
+      <button class="scan-btn" onclick="startScan('searchAllInput', renderAllDevices)">📷 مسح</button>
+    </div>
+    <div id="allDevicesList" class="cards-list-container"></div>
+  </div>
+
+  <!-- قسم ملفات الدين -->
+  <div class="section-view" id="debtDevicesSection">
+    <h3 style="margin-top: 2px; color:#b91c1c;">📒 ملفات الدين</h3>
+    <div class="debt-banner">
+      <span>إجمالي الملفات المسلّمة بالدين:</span>
+      <span id="debtSectionTotalLabel" style="font-size:15px; font-weight:900;">0 ملف</span>
+    </div>
+    <div class="search-bar">
+      <input type="text" id="searchDebtInput" placeholder="ابحث بالاسم أو رقم الوصل..." oninput="renderDebtDevices()">
+      <button class="scan-btn" onclick="startScan('searchDebtInput', renderDebtDevices)">📷 مسح</button>
+    </div>
+    <div id="debtDevicesList" class="cards-list-container"></div>
+  </div>
+
+  <div class="section-view" id="settingsSection">
+    <h3 style="margin-top: 2px;">إعدادات البرنامج</h3>
+    
+    <!-- درج اسم المركز والشعار -->
+    <div class="settings-drawer" id="settingsDrawerCenter">
+      <button type="button" class="settings-drawer-header" onclick="toggleSettingsDrawer('settingsDrawerCenter')">
+        <span>🏷️ اسم المركز والشعار</span>
+        <span class="settings-drawer-arrow">▼</span>
+      </button>
+      <div class="settings-drawer-body">
+        <div class="form-group">
+          <label>اسم المركز</label>
+          <input type="text" id="settingsTitleInput" placeholder="مركز الدمشقي للصيانة" oninput="updateWaReportPreview()">
+        </div>
+        <button class="btn-primary" onclick="saveTitleFromSettings()">حفظ اسم التطبيق</button>
+
+        <hr class="settings-inner-divider">
+
+        <div class="form-group">
+          <label>🖼️ شعار المحل</label>
+          <div class="logo-preview-wrap" id="settingsLogoPreview">
+            <img src="logo.jpg" alt="Logo" onerror="this.parentElement.innerHTML='<span>لا يوجد شعار</span>'">
+          </div>
+        </div>
+        <input type="file" id="logoFileInput" accept="image/*" style="display:none;" onchange="handleLogoUpload(event)">
+        <div class="actions-row">
+          <button class="btn-primary" onclick="document.getElementById('logoFileInput').click()">اختيار صورة</button>
+          <button class="btn-danger" onclick="removeLogoImage()">استعادة الافتراضي</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- درج أزرار أنواع الأجهزة -->
+    <div class="settings-drawer types-drawer" id="settingsDrawerDeviceTypes">
+      <button type="button" class="settings-drawer-header" onclick="toggleSettingsDrawer('settingsDrawerDeviceTypes')">
+        <span>🎛️ أزرار أنواع الأجهزة</span>
+        <span class="settings-drawer-arrow">▼</span>
+      </button>
+      <div class="settings-drawer-body">
+        <div class="settings-sub-hint">عدّل اسم أي زر، احذفه، أو أضف أزراراً جديدة تظهر في صفحة استلام الجهاز:</div>
+
+        <div id="settingsDeviceTypesList" class="device-types-manage-list"></div>
+
+        <hr class="settings-inner-divider">
+
+        <div class="form-group">
+          <label>إضافة زر جهاز جديد</label>
+          <div class="search-bar">
+            <input type="text" id="newDeviceTypeInput" placeholder="مثال: UPS أو منظم جهد...">
+            <button type="button" class="btn-primary" style="width:auto; padding:0 16px;" onclick="addDeviceTypeFromSettings()">➕ إضافة</button>
+          </div>
+        </div>
+
+        <button type="button" class="btn-danger" onclick="resetDeviceTypesToDefault()">🔄 استعادة الأزرار الافتراضية</button>
+      </div>
+    </div>
+
+    <!-- درج إعدادات تقرير الواتساب والمشاركة -->
+    <div class="settings-drawer wa-drawer" id="settingsDrawerWa">
+      <button type="button" class="settings-drawer-header" onclick="toggleSettingsDrawer('settingsDrawerWa')">
+        <span>💬 إعدادات تقرير الواتساب والمشاركة</span>
+        <span class="settings-drawer-arrow">▼</span>
+      </button>
+      <div class="settings-drawer-body">
+        <!-- اختيار تطبيق الواتساب (عادي / أعمال) -->
+        <div class="wa-app-selector-box">
+          <div class="wa-app-selector-title">📱 تطبيق الواتساب المستخدم للإرسال:</div>
+          <div class="type-selector-row" style="margin-bottom:0;">
+            <button type="button" class="wa-app-btn active-wa" id="btnWaAppNormal" onclick="setWhatsAppAppType('normal')">واتساب العادي</button>
+            <button type="button" class="wa-app-btn" id="btnWaAppBusiness" onclick="setWhatsAppAppType('business')">واتساب أعمال</button>
+          </div>
+        </div>
+
+        <hr class="settings-inner-divider">
+
+        <div class="settings-sub-hint">فعّل أو ألغِ أي عنصر، ويمكنك تعديل اسمه في الرسالة المرسلة للزبون:</div>
+
+        <div class="wa-fields-list" id="waFieldsList">
+          <div class="wa-field-row" id="waRow_showTitle">
+            <label class="wa-check-wrap">
+              <input type="checkbox" id="wa_showTitle" onchange="handleWaSettingChange()">
+            </label>
+            <label for="wa_showTitle" class="wa-static-label">إظهار اسم المركز أعلى التقرير</label>
+          </div>
+
+          <div class="wa-field-row" id="waRow_showReceiptId">
+            <label class="wa-check-wrap">
+              <input type="checkbox" id="wa_showReceiptId" onchange="handleWaSettingChange()">
+            </label>
+            <input type="text" id="wa_labelReceiptId" class="wa-label-input" placeholder="عنوان رقم الوصل" oninput="handleWaSettingChange()">
+          </div>
+
+          <div class="wa-field-row" id="waRow_showName">
+            <label class="wa-check-wrap">
+              <input type="checkbox" id="wa_showName" onchange="handleWaSettingChange()">
+            </label>
+            <input type="text" id="wa_labelName" class="wa-label-input" placeholder="عنوان اسم الزبون" oninput="handleWaSettingChange()">
+          </div>
+
+          <div class="wa-field-row" id="waRow_showCustomerType">
+            <label class="wa-check-wrap">
+              <input type="checkbox" id="wa_showCustomerType" onchange="handleWaSettingChange()">
+            </label>
+            <label for="wa_showCustomerType" class="wa-static-label">إظهار نوع الزبون (زبون / فني)</label>
+          </div>
+
+          <div class="wa-field-row" id="waRow_showDateIn">
+            <label class="wa-check-wrap">
+              <input type="checkbox" id="wa_showDateIn" onchange="handleWaSettingChange()">
+            </label>
+            <input type="text" id="wa_labelDateIn" class="wa-label-input" placeholder="عنوان تاريخ الاستلام" oninput="handleWaSettingChange()">
+          </div>
+
+          <div class="wa-field-row" id="waRow_showDeviceType">
+            <label class="wa-check-wrap">
+              <input type="checkbox" id="wa_showDeviceType" onchange="handleWaSettingChange()">
+            </label>
+            <input type="text" id="wa_labelDeviceType" class="wa-label-input" placeholder="عنوان نوع الجهاز" oninput="handleWaSettingChange()">
+          </div>
+
+          <div class="wa-field-row" id="waRow_showBarcode">
+            <label class="wa-check-wrap">
+              <input type="checkbox" id="wa_showBarcode" onchange="handleWaSettingChange()">
+            </label>
+            <input type="text" id="wa_labelBarcode" class="wa-label-input" placeholder="عنوان الباركود" oninput="handleWaSettingChange()">
+          </div>
+
+          <div class="wa-field-row" id="waRow_showIssue">
+            <label class="wa-check-wrap">
+              <input type="checkbox" id="wa_showIssue" onchange="handleWaSettingChange()">
+            </label>
+            <input type="text" id="wa_labelIssue" class="wa-label-input" placeholder="عنوان العطل" oninput="handleWaSettingChange()">
+          </div>
+
+          <div class="wa-field-row" id="waRow_showWorkDone">
+            <label class="wa-check-wrap">
+              <input type="checkbox" id="wa_showWorkDone" onchange="handleWaSettingChange()">
+            </label>
+            <input type="text" id="wa_labelWorkDone" class="wa-label-input" placeholder="عنوان القطع المستبدلة / الصيانة" oninput="handleWaSettingChange()">
+          </div>
+
+          <div class="wa-field-row" id="waRow_showCost">
+            <label class="wa-check-wrap">
+              <input type="checkbox" id="wa_showCost" onchange="handleWaSettingChange()">
+            </label>
+            <input type="text" id="wa_labelCost" class="wa-label-input" placeholder="عنوان التكلفة" oninput="handleWaSettingChange()">
+          </div>
+
+          <div class="wa-field-row" id="waRow_showStatus">
+            <label class="wa-check-wrap">
+              <input type="checkbox" id="wa_showStatus" onchange="handleWaSettingChange()">
+            </label>
+            <label for="wa_showStatus" class="wa-static-label">إظهار حالة الجهاز أسفل التقرير</label>
+          </div>
+
+          <div class="wa-field-row" id="waRow_showFooter" style="flex-direction:column; align-items:stretch; gap:6px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <label class="wa-check-wrap">
+                <input type="checkbox" id="wa_showFooter" onchange="handleWaSettingChange()">
+              </label>
+              <label for="wa_showFooter" class="wa-static-label">إضافة ملاحظة ختامية (عنوان المحل / شكر للزبون)</label>
+            </div>
+            <textarea id="wa_footerText" style="min-height:54px; font-size:13px;" placeholder="مثال: أهلاً بكم في مركز الدمشقي للصيانة..." oninput="handleWaSettingChange()"></textarea>
+          </div>
+        </div>
+
+        <div class="wa-preview-card">
+          <div class="wa-preview-header">👁️ معاينة شكل تقرير الواتساب للزبون:</div>
+          <div class="wa-preview-text" id="waReportPreviewBox"></div>
+        </div>
+
+        <div class="actions-row">
+          <button type="button" id="saveWaSettingsBtn" class="btn-success" onclick="saveWaSettingsFromUI()">💾 حفظ التقرير</button>
+          <button type="button" class="btn-danger" onclick="resetWaSettingsToDefault()">🔄 استعادة الافتراضي</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-view" id="syncSection">
+    <h3 style="margin-top: 2px;">المزامنة والنسخ الاحتياطي</h3>
+    <div class="settings-box">
+      <button class="btn-primary" onclick="exportBackup()">تحميل نسخة احتياطية (JSON)</button>
+      <div class="form-group" style="margin-top:8px;">
+        <label>استعادة نسخة احتياطية</label>
+        <input type="file" accept=".json" onchange="importBackup(event)">
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  window.addEventListener('DOMContentLoaded', () => {
+    Array.from(document.body.childNodes).forEach(node => {
+      if (node.nodeType === 3 && node.textContent.trim() !== '') {
+        node.remove();
+      }
+    });
+    loadAppSettings();
+    renderReceiveDeviceTypeButtons();
+
+    /* إزالة تنبيه الخطأ الأحمر تلقائياً بمجرد الكتابة في أي حقل */
+    document.addEventListener('input', (e) => {
+      if (e.target && e.target.classList && e.target.classList.contains('field-error')) {
+        clearFieldError(e.target);
+      }
+    });
+  });
+
+  /* دوال إظهار وإزالة تنبيه الحقول الفارغة */
+  function showFieldError(el, msg = '⚠️ يرجى تعبئة هذا الحقل') {
+    if (!el) return;
+    el.classList.remove('field-error');
+    void el.offsetWidth;
+    el.classList.add('field-error');
+
+    const parentGroup = el.closest('.form-group') || el.closest('.quick-cost-popover') || el.parentElement;
+    if (!parentGroup) return;
+
+    let errEl = parentGroup.querySelector('.field-error-msg[data-for="' + (el.id || '') + '"]');
+    if (!errEl) {
+      errEl = document.createElement('div');
+      errEl.className = 'field-error-msg';
+      errEl.setAttribute('data-for', el.id || '');
+      parentGroup.appendChild(errEl);
+    }
+    errEl.innerText = msg;
+  }
+
+  function clearFieldError(el) {
+    if (!el) return;
+    el.classList.remove('field-error');
+    const parentGroup = el.closest('.form-group') || el.closest('.quick-cost-popover') || el.parentElement;
+    if (!parentGroup) return;
+    const errEl = parentGroup.querySelector('.field-error-msg[data-for="' + (el.id || '') + '"]');
+    if (errEl) errEl.remove();
+  }
+
+  function clearAllErrorsIn(containerEl) {
+    if (!containerEl) return;
+    containerEl.querySelectorAll('.field-error').forEach(el => el.classList.remove('field-error'));
+    containerEl.querySelectorAll('.field-error-msg').forEach(el => el.remove());
+  }
+
+  const DEFAULT_DEVICE_TYPES = ['انفرتر', 'بطارية', 'شاحن', 'ملحمة'];
+
+  const DEFAULT_WA_CONFIG = {
+    showTitle: true,
+    showReceiptId: true,
+    labelReceiptId: 'رقم الوصل',
+    showName: true,
+    labelName: 'الزبون',
+    showCustomerType: true,
+    showDateIn: true,
+    labelDateIn: 'تاريخ الاستلام',
+    showDeviceType: true,
+    labelDeviceType: 'نوع الجهاز',
+    showBarcode: false,
+    labelBarcode: 'باركود الجهاز',
+    showIssue: true,
+    labelIssue: 'العطل',
+    showWorkDone: true,
+    labelWorkDone: 'القطع المستبدلة / الصيانة',
+    showCost: true,
+    labelCost: 'التكلفة',
+    showStatus: true,
+    showFooter: false,
+    footerText: 'شكراً لتعاملكم مع مركز الدمشقي للصيانة'
+  };
+
+  let devices = JSON.parse(localStorage.getItem('dimashqi_devices') || '[]');
+  let html5QrCode = null;
+  let matchedDuplicateDevice = null;
+  let matchedNameCustomerGroup = [];
+  let lastCheckedCustomerName = '';
+  let compiledBarcodeHistory = [];
+  let isReturnMode = false;
+  let currentAllDevicesFilter = 'all';
+  let selectedReceiveDeviceCategory = '';
+
+  /* إدارة أزرار أنواع الأجهزة */
+  function getDeviceTypesList() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('dimashqi_device_types') || 'null');
+      if (Array.isArray(saved) && saved.length > 0) {
+        return saved.map(x => String(x || '').trim()).filter(Boolean);
+      }
+    } catch (e) {}
+    return [...DEFAULT_DEVICE_TYPES];
+  }
+
+  function saveDeviceTypesList(list) {
+    const clean = list.map(x => String(x || '').trim()).filter(Boolean);
+    localStorage.setItem('dimashqi_device_types', JSON.stringify(clean));
+    renderReceiveDeviceTypeButtons();
+    renderSettingsDeviceTypesUI();
+  }
+
+  function renderReceiveDeviceTypeButtons() {
+    const container = document.getElementById('receiveDeviceTypeButtons');
+    if (!container) return;
+    const list = getDeviceTypesList();
+    container.innerHTML = '';
+
+    list.forEach(typeName => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `device-type-chip-btn ${selectedReceiveDeviceCategory === typeName ? 'active-device-type' : ''}`;
+      btn.innerText = typeName;
+      btn.onclick = () => selectReceiveDeviceType(typeName, null, true);
+      container.appendChild(btn);
+    });
+  }
+
+  function selectReceiveDeviceType(typeName, prefillDetail = null, autoFocus = true) {
+    selectedReceiveDeviceCategory = typeName || '';
+    renderReceiveDeviceTypeButtons();
+    clearFieldError(document.getElementById('receiveDeviceTypeButtons'));
+
+    const wrap = document.getElementById('deviceDetailInputWrap');
+    const label = document.getElementById('deviceDetailLabel');
+    const input = document.getElementById('deviceDetailInput');
+
+    if (selectedReceiveDeviceCategory) {
+      wrap.classList.add('open');
+      label.innerText = `استطاعة أو ماركة (${selectedReceiveDeviceCategory}):`;
+      if (prefillDetail !== null) {
+        input.value = prefillDetail;
+      }
+      if (autoFocus) {
+        setTimeout(() => input.focus(), 50);
+      }
+    } else {
+      wrap.classList.remove('open');
+      input.value = '';
+    }
+  }
+
+  function setReceiveDeviceTypeFromFullString(fullStr) {
+    const text = String(fullStr || '').trim();
+    if (!text) {
+      selectReceiveDeviceType('', '', false);
+      return;
+    }
+
+    const list = getDeviceTypesList();
+    const matched = list.find(t => text === t || text.startsWith(t + ' - ') || text.startsWith(t + ' '));
+    if (matched) {
+      let detail = text.slice(matched.length).trim();
+      if (detail.startsWith('-')) detail = detail.slice(1).trim();
+      selectReceiveDeviceType(matched, detail, false);
+    } else {
+      selectedReceiveDeviceCategory = '';
+      renderReceiveDeviceTypeButtons();
+      clearFieldError(document.getElementById('receiveDeviceTypeButtons'));
+      const wrap = document.getElementById('deviceDetailInputWrap');
+      const label = document.getElementById('deviceDetailLabel');
+      const input = document.getElementById('deviceDetailInput');
+      wrap.classList.add('open');
+      label.innerText = 'نوع الجهاز / الاستطاعة أو الماركة:';
+      input.value = text;
+    }
+  }
+
+  function getComposedReceiveDeviceType() {
+    const detail = (document.getElementById('deviceDetailInput').value || '').trim();
+    if (selectedReceiveDeviceCategory && detail) {
+      return `${selectedReceiveDeviceCategory} - ${detail}`;
+    }
+    if (selectedReceiveDeviceCategory) {
+      return selectedReceiveDeviceCategory;
+    }
+    return detail;
+  }
+
+  function renderSettingsDeviceTypesUI() {
+    const container = document.getElementById('settingsDeviceTypesList');
+    if (!container) return;
+    const list = getDeviceTypesList();
+    container.innerHTML = '';
+
+    list.forEach((typeName, idx) => {
+      const row = document.createElement('div');
+      row.className = 'device-type-manage-row';
+      row.innerHTML = `
+        <input type="text" value="${typeName.replace(/"/g, '&quot;')}" onchange="renameDeviceTypeFromSettings(${idx}, this.value)">
+        <button type="button" class="btn-mini-del" onclick="deleteDeviceTypeFromSettings(${idx})">🗑️</button>
+      `;
+      container.appendChild(row);
+    });
+  }
+
+  function renameDeviceTypeFromSettings(idx, newVal) {
+    const clean = String(newVal || '').trim();
+    const list = getDeviceTypesList();
+    if (!clean) {
+      renderSettingsDeviceTypesUI();
+      return;
+    }
+    list[idx] = clean;
+    saveDeviceTypesList(list);
+  }
+
+  function addDeviceTypeFromSettings() {
+    const input = document.getElementById('newDeviceTypeInput');
+    const val = String(input.value || '').trim();
+    if (!val) {
+      showFieldError(input, '⚠️ يرجى كتابة اسم الزر أولاً');
+      input.focus();
+      return;
+    }
+    clearFieldError(input);
+    const list = getDeviceTypesList();
+    if (!list.includes(val)) {
+      list.push(val);
+      saveDeviceTypesList(list);
+    }
+    input.value = '';
+  }
+
+  function deleteDeviceTypeFromSettings(idx) {
+    const list = getDeviceTypesList();
+    if (list.length <= 1) return;
+    list.splice(idx, 1);
+    saveDeviceTypesList(list);
+  }
+
+  function resetDeviceTypesToDefault() {
+    localStorage.removeItem('dimashqi_device_types');
+    renderReceiveDeviceTypeButtons();
+    renderSettingsDeviceTypesUI();
+  }
+
+  /* توحيد الأحرف العربية والأرقام لبحث أدق */
+  function normalizeSearchText(str) {
+    return String(str || '')
+      .toLowerCase()
+      .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+      .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+      .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
+      .replace(/[أإآ]/g, 'ا')
+      .replace(/ة/g, 'ه')
+      .replace(/ى/g, 'ي')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function toggleSettingsDrawer(drawerId) {
+    const target = document.getElementById(drawerId);
+    if (!target) return;
+    const isAlreadyOpen = target.classList.contains('open');
+    document.querySelectorAll('#settingsSection .settings-drawer.open').forEach(d => {
+      d.classList.remove('open');
+    });
+    if (!isAlreadyOpen) {
+      target.classList.add('open');
+    }
+  }
+
+  function getWhatsAppAppType() {
+    const saved = localStorage.getItem('dimashqi_wa_app_type');
+    return saved === 'business' ? 'business' : 'normal';
+  }
+
+  function setWhatsAppAppType(type) {
+    const cleanType = type === 'business' ? 'business' : 'normal';
+    localStorage.setItem('dimashqi_wa_app_type', cleanType);
+    loadWhatsAppAppTypeUI();
+  }
+
+  function loadWhatsAppAppTypeUI() {
+    const current = getWhatsAppAppType();
+    const btnNormal = document.getElementById('btnWaAppNormal');
+    const btnBusiness = document.getElementById('btnWaAppBusiness');
+    if (btnNormal && btnBusiness) {
+      btnNormal.classList.toggle('active-wa', current === 'normal');
+      btnBusiness.classList.toggle('active-wa', current === 'business');
+    }
+  }
+
+  function normalizeSyrianPhoneForWhatsApp(rawPhone) {
+    if (!rawPhone) return '';
+    let digits = String(rawPhone)
+      .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+      .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+      .replace(/[^0-9]/g, '');
+
+    if (!digits) return '';
+
+    if (digits.startsWith('00')) {
+      digits = digits.slice(2);
+    }
+
+    if (digits.startsWith('96309') && digits.length === 13) {
+      return '963' + digits.slice(4);
+    }
+
+    if (digits.startsWith('09') && digits.length === 10) {
+      return '963' + digits.slice(1);
+    }
+
+    if (digits.startsWith('9') && digits.length === 9) {
+      return '963' + digits;
+    }
+
+    return digits;
+  }
+
+  function getWaReportConfig() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('dimashqi_wa_config') || '{}');
+      return Object.assign({}, DEFAULT_WA_CONFIG, saved);
+    } catch (e) {
+      return Object.assign({}, DEFAULT_WA_CONFIG);
+    }
+  }
+
+  function loadWaSettingsUI() {
+    loadWhatsAppAppTypeUI();
+    const cfg = getWaReportConfig();
+    const boolKeys = [
+      'showTitle', 'showReceiptId', 'showName', 'showCustomerType',
+      'showDateIn', 'showDeviceType', 'showBarcode', 'showIssue',
+      'showWorkDone', 'showCost', 'showStatus', 'showFooter'
+    ];
+    boolKeys.forEach(k => {
+      const el = document.getElementById('wa_' + k);
+      if (el) el.checked = !!cfg[k];
+      const row = document.getElementById('waRow_' + k);
+      if (row) row.classList.toggle('active-row', !!cfg[k]);
+    });
+
+    const textKeys = [
+      'labelReceiptId', 'labelName', 'labelDateIn', 'labelDeviceType',
+      'labelBarcode', 'labelIssue', 'labelWorkDone', 'labelCost', 'footerText'
+    ];
+    textKeys.forEach(k => {
+      const el = document.getElementById('wa_' + k);
+      if (el) el.value = cfg[k] || '';
+    });
+
+    updateWaReportPreview();
+  }
+
+  function readWaConfigFromUI() {
+    return {
+      showTitle: document.getElementById('wa_showTitle').checked,
+      showReceiptId: document.getElementById('wa_showReceiptId').checked,
+      labelReceiptId: document.getElementById('wa_labelReceiptId').value.trim() || DEFAULT_WA_CONFIG.labelReceiptId,
+      showName: document.getElementById('wa_showName').checked,
+      labelName: document.getElementById('wa_labelName').value.trim() || DEFAULT_WA_CONFIG.labelName,
+      showCustomerType: document.getElementById('wa_showCustomerType').checked,
+      showDateIn: document.getElementById('wa_showDateIn').checked,
+      labelDateIn: document.getElementById('wa_labelDateIn').value.trim() || DEFAULT_WA_CONFIG.labelDateIn,
+      showDeviceType: document.getElementById('wa_showDeviceType').checked,
+      labelDeviceType: document.getElementById('wa_labelDeviceType').value.trim() || DEFAULT_WA_CONFIG.labelDeviceType,
+      showBarcode: document.getElementById('wa_showBarcode').checked,
+      labelBarcode: document.getElementById('wa_labelBarcode').value.trim() || DEFAULT_WA_CONFIG.labelBarcode,
+      showIssue: document.getElementById('wa_showIssue').checked,
+      labelIssue: document.getElementById('wa_labelIssue').value.trim() || DEFAULT_WA_CONFIG.labelIssue,
+      showWorkDone: document.getElementById('wa_showWorkDone').checked,
+      labelWorkDone: document.getElementById('wa_labelWorkDone').value.trim() || DEFAULT_WA_CONFIG.labelWorkDone,
+      showCost: document.getElementById('wa_showCost').checked,
+      labelCost: document.getElementById('wa_labelCost').value.trim() || DEFAULT_WA_CONFIG.labelCost,
+      showStatus: document.getElementById('wa_showStatus').checked,
+      showFooter: document.getElementById('wa_showFooter').checked,
+      footerText: document.getElementById('wa_footerText').value.trim()
+    };
+  }
+
+  function handleWaSettingChange() {
+    const cfg = readWaConfigFromUI();
+    Object.keys(cfg).forEach(k => {
+      if (k.startsWith('show')) {
+        const row = document.getElementById('waRow_' + k);
+        if (row) row.classList.toggle('active-row', !!cfg[k]);
+      }
+    });
+    updateWaReportPreview(cfg);
+  }
+
+  function updateWaReportPreview(customCfg = null) {
+    const previewEl = document.getElementById('waReportPreviewBox');
+    if (!previewEl) return;
+    const cfg = customCfg || readWaConfigFromUI();
+    const sampleDev = {
+      receiptId: 1025,
+      name: 'أحمد العلي',
+      customerType: 'زبون',
+      dateIn: getCleanDate(),
+      deviceType: 'انفرتر - فولترونيك 5KW',
+      barcode: '890123456789',
+      issue: 'لا يوجد خرج كهرباء (خطأ 09)',
+      workDone: 'تبديل مجموعة موسفتات وفحص كامل',
+      cost: '35$',
+      status: 'closed',
+      subStage: 'closed'
+    };
+    const titleInput = document.getElementById('settingsTitleInput');
+    const previewTitle = (titleInput && titleInput.value.trim()) ? titleInput.value.trim() : (localStorage.getItem('dimashqi_app_title') || 'مركز الدمشقي للصيانة');
+    const txt = buildDeviceReportText(sampleDev, sampleDev.workDone, sampleDev.cost, true, cfg, previewTitle);
+    previewEl.innerText = txt || 'لم يتم تحديد أي عنصر لإرساله في التقرير.';
+  }
+
+  function saveWaSettingsFromUI() {
+    const cfg = readWaConfigFromUI();
+    localStorage.setItem('dimashqi_wa_config', JSON.stringify(cfg));
+    updateWaReportPreview(cfg);
+    const btn = document.getElementById('saveWaSettingsBtn');
+    if (btn) {
+      const oldText = btn.innerText;
+      btn.innerText = '✅ تم حفظ إعدادات التقرير';
+      setTimeout(() => { btn.innerText = oldText; }, 1400);
+    }
+  }
+
+  function resetWaSettingsToDefault() {
+    localStorage.removeItem('dimashqi_wa_config');
+    localStorage.removeItem('dimashqi_wa_app_type');
+    loadWaSettingsUI();
+  }
+
+  function showConfirm(msg, icon, onConfirm) {
+    document.getElementById('confirmModalMsg').innerText = msg;
+    document.getElementById('confirmModalIcon').innerText = icon || '⚠️';
+    const btnsContainer = document.getElementById('confirmModalBtnsContainer');
+
+    if (onConfirm) {
+      btnsContainer.style.gridTemplateColumns = '1fr 1fr';
+      btnsContainer.innerHTML = `
+        <button class="btn-success" id="confirmModalYesBtn">نعم، تأكيد</button>
+        <button class="btn-share" onclick="closeCustomConfirmModal()">إلغاء</button>
+      `;
+      document.getElementById('confirmModalYesBtn').onclick = () => {
+        closeCustomConfirmModal();
+        onConfirm();
+      };
+    } else {
+      btnsContainer.style.gridTemplateColumns = '1fr';
+      btnsContainer.innerHTML = `
+        <button class="btn-primary" onclick="closeCustomConfirmModal()">حسناً</button>
+      `;
+    }
+    document.getElementById('customConfirmModal').classList.add('open');
+  }
+
+  function closeCustomConfirmModal() {
+    document.getElementById('customConfirmModal').classList.remove('open');
+  }
+
+  function loadAppSettings() {
+    const savedTitle = localStorage.getItem('dimashqi_app_title') || 'مركز الدمشقي للصيانة';
+    const savedLogo = localStorage.getItem('dimashqi_app_logo') || 'logo.jpg';
+    
+    document.getElementById('appTitleText').innerText = savedTitle;
+    document.getElementById('pageTitleText').innerText = savedTitle;
+    const sidebarTitle = document.getElementById('sidebarTitleText');
+    if (sidebarTitle) sidebarTitle.innerText = savedTitle;
+
+    const titleInput = document.getElementById('settingsTitleInput');
+    if (titleInput) titleInput.value = savedTitle;
+
+    const headerLogoBox = document.getElementById('headerLogoContainer');
+    const headerLogoImg = document.getElementById('appLogoImg');
+    const sidebarLogoBox = document.getElementById('sidebarLogoContainer');
+    const sidebarLogoImg = document.getElementById('sidebarLogoImg');
+    const previewBox = document.getElementById('settingsLogoPreview');
+
+    headerLogoBox.style.display = 'flex';
+    headerLogoImg.src = savedLogo;
+    if (sidebarLogoBox && sidebarLogoImg) {
+      sidebarLogoBox.style.display = 'flex';
+      sidebarLogoImg.src = savedLogo;
+    }
+    if (previewBox) {
+      previewBox.innerHTML = `<img src="${savedLogo}" alt="Logo" onerror="this.parentElement.innerHTML='<span>لا يوجد شعار</span>'">`;
+    }
+
+    renderSettingsDeviceTypesUI();
+    loadWaSettingsUI();
+  }
+
+  function saveTitleFromSettings() {
+    const input = document.getElementById('settingsTitleInput');
+    const val = input.value.trim();
+    if (!val) {
+      showFieldError(input, '⚠️ يرجى كتابة اسم المركز');
+      input.focus();
+      return;
+    }
+    clearFieldError(input);
+    localStorage.setItem('dimashqi_app_title', val);
+    loadAppSettings();
+  }
+
+  function handleLogoUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxDim = 180;
+        let w = img.width, h = img.height;
+        if (w > h) {
+          if (w > maxDim) { h = Math.round(h * maxDim / w); w = maxDim; }
+        } else {
+          if (h > maxDim) { w = Math.round(w * maxDim / h); h = maxDim; }
+        }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/png');
+        localStorage.setItem('dimashqi_app_logo', dataUrl);
+        loadAppSettings();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function removeLogoImage() {
+    localStorage.removeItem('dimashqi_app_logo');
+    loadAppSettings();
+  }
+
+  function normalizeCustomerType(type) {
+    return type === 'فني' ? 'فني' : 'زبون';
+  }
+
+  function setCustomerType(type) {
+    const normalized = normalizeCustomerType(type);
+    document.getElementById('customerTypeInput').value = normalized;
+    const btnNormal = document.getElementById('btnNormalCust');
+    const btnTech = document.getElementById('btnTechCust');
+    if (normalized === 'فني') {
+      btnTech.className = 'type-btn active-tech';
+      btnNormal.className = 'type-btn';
+    } else {
+      btnNormal.className = 'type-btn active-normal';
+      btnTech.className = 'type-btn';
+    }
+  }
+
+  function getNextReceiptNumber() {
+    let highestSaved = parseInt(localStorage.getItem('dimashqi_last_receipt_num') || '999', 10);
+    if (Array.isArray(devices) && devices.length > 0) {
+      devices.forEach(d => {
+        const num = parseInt(String(d.receiptId).replace(/[^0-9]/g, ''), 10);
+        if (!isNaN(num) && num > highestSaved) {
+          highestSaved = num;
+        }
+      });
+    }
+    if (highestSaved < 999) highestSaved = 999;
+    return highestSaved + 1;
+  }
+
+  function sanitizeReceiptIds() {
+    let base = 1000;
+    let maxFound = parseInt(localStorage.getItem('dimashqi_last_receipt_num') || '999', 10);
+    const usedIds = new Set();
+
+    devices.forEach(d => {
+      let cleanNum = parseInt(String(d.receiptId).replace(/[^0-9]/g, ''), 10);
+      if (isNaN(cleanNum) || cleanNum < 1000 || usedIds.has(cleanNum)) {
+        while (usedIds.has(base)) base++;
+        cleanNum = base++;
+      }
+      d.receiptId = cleanNum;
+      usedIds.add(cleanNum);
+      if (cleanNum >= base) base = cleanNum + 1;
+      if (d.receiptId > maxFound) maxFound = d.receiptId;
+      d.customerType = normalizeCustomerType(d.customerType);
+      if (Array.isArray(d.historyLog)) {
+        d.historyLog.forEach(h => {
+          h.customerType = normalizeCustomerType(h.customerType);
+        });
+      }
+      if (!d.status) d.status = 'open';
+      if (typeof d.paymentStatus === 'undefined') d.paymentStatus = '';
+    });
+    localStorage.setItem('dimashqi_last_receipt_num', String(maxFound));
+    localStorage.setItem('dimashqi_devices', JSON.stringify(devices));
+  }
+  sanitizeReceiptIds();
+
+  function getCleanDate(inputDate) {
+    if (!inputDate) {
+      const now = new Date();
+      const d = String(now.getDate()).padStart(2, '0');
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const y = now.getFullYear();
+      return `${d} / ${m} / ${y}`;
+    }
+    return inputDate;
+  }
+
+  function updateCounter() {
+    const totalReceived = devices.length;
+    const openCount = devices.filter(d => d.status === 'open').length;
+    const readyCount = devices.filter(d => d.status === 'closed').length;
+    const deliveredCount = devices.filter(d => d.status === 'delivered').length;
+    const debtCount = devices.filter(d => d.status === 'delivered' && d.paymentStatus === 'debt').length;
+    const inShopCount = openCount + readyCount;
+
+    document.getElementById('deviceCount').innerText = `بالمحل: ${inShopCount} جهاز`;
+
+    const sidebarShopBadge = document.getElementById('sidebarShopBadge');
+    if (sidebarShopBadge) {
+      sidebarShopBadge.innerText = `بالمحل: ${inShopCount}`;
+    }
+
+    const sidebarAllCountBadge = document.getElementById('sidebarAllCountBadge');
+    if (sidebarAllCountBadge) {
+      sidebarAllCountBadge.innerText = totalReceived;
+    }
+
+    const sidebarDebtCountBadge = document.getElementById('sidebarDebtCountBadge');
+    if (sidebarDebtCountBadge) {
+      sidebarDebtCountBadge.innerText = debtCount;
+    }
+
+    if (document.getElementById('statTotalReceived')) {
+      document.getElementById('statTotalReceived').innerText = totalReceived;
+      document.getElementById('statInShop').innerText = inShopCount;
+      document.getElementById('statOpenMaintenance').innerText = openCount;
+      document.getElementById('statReadyDelivery').innerText = readyCount;
+      document.getElementById('statDelivered').innerText = deliveredCount;
+    }
+    const statDebtCount = document.getElementById('statDebtCount');
+    if (statDebtCount) {
+      statDebtCount.innerText = debtCount;
+    }
+
+    const debtTotalLabel = document.getElementById('debtSectionTotalLabel');
+    if (debtTotalLabel) {
+      debtTotalLabel.innerText = `${debtCount} ملف`;
+    }
+
+    localStorage.setItem('dimashqi_devices', JSON.stringify(devices));
+  }
+
+  function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    const willOpen = !sidebar.classList.contains('open');
+    sidebar.classList.toggle('open', willOpen);
+    overlay.classList.toggle('open', willOpen);
+  }
+
+  function toggleSidebarDrawer(drawerId) {
+    const targetDrawer = document.getElementById(drawerId);
+    if (!targetDrawer) return;
+    const isAlreadyOpen = targetDrawer.classList.contains('open');
+
+    document.querySelectorAll('#sidebar .sidebar-drawer.open').forEach(drawer => {
+      drawer.classList.remove('open');
+    });
+
+    if (!isAlreadyOpen) {
+      targetDrawer.classList.add('open');
+    }
+  }
+
+  function openFilteredAllDevices(filterType) {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('open');
+    document.getElementById('searchAllInput').value = '';
+    currentAllDevicesFilter = filterType;
+    document.querySelectorAll('.filter-pill').forEach(btn => btn.classList.remove('active'));
+    const activeBtn = document.getElementById(`pill_${filterType}`);
+    if (activeBtn) activeBtn.classList.add('active');
+    openSection('allDevicesSection');
+  }
+
+  function openDebtDevicesSection() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('open');
+    document.getElementById('searchDebtInput').value = '';
+    openSection('debtDevicesSection');
+  }
+
+  function setAllDevicesFilter(filterType) {
+    currentAllDevicesFilter = filterType;
+    document.querySelectorAll('.filter-pill').forEach(btn => btn.classList.remove('active'));
+    const activeBtn = document.getElementById(`pill_${filterType}`);
+    if (activeBtn) activeBtn.classList.add('active');
+    renderAllDevices();
+  }
+
+  function refreshActiveViews(keepDevIdx = null) {
+    handleQuickSearch(keepDevIdx);
+    renderOpenDevices(false, keepDevIdx);
+    renderDeliverDevices(false, keepDevIdx);
+    renderAllDevices(keepDevIdx);
+    renderDebtDevices(keepDevIdx);
+  }
+
+  function toggleCardAccordion(headerEl) {
+    const card = headerEl.closest('.device-card');
+    const container = card.parentElement;
+    const isAlreadyOpen = card.classList.contains('expanded');
+
+    if (container) {
+      container.querySelectorAll('.device-card.expanded').forEach(otherCard => {
+        if (otherCard !== card) otherCard.classList.remove('expanded');
+      });
+    }
+    card.classList.toggle('expanded', !isAlreadyOpen);
+  }
+
+  function toggleHistoryAccordion(headerEl) {
+    const item = headerEl.closest('.history-item');
+    const container = item.parentElement;
+    const isAlreadyOpen = item.classList.contains('expanded');
+
+    if (container) {
+      container.querySelectorAll('.history-item.expanded').forEach(other => {
+        if (other !== item) other.classList.remove('expanded');
+      });
+    }
+    item.classList.toggle('expanded', !isAlreadyOpen);
+  }
+
+  function getCardVisualTheme(d) {
+    if (d.status === 'closed') {
+      return { cardClass: 'card-closed', statusClass: 'status-plain-closed', badgeText: 'انتهاء الصيانة ✅' };
+    }
+    if (d.status === 'delivered') {
+      if (d.paymentStatus === 'debt') {
+        return { cardClass: 'card-debt', statusClass: 'status-plain-debt', badgeText: 'مسلّم (دين) 📝' };
+      }
+      if (d.paymentStatus === 'cash') {
+        return { cardClass: 'card-delivered', statusClass: 'status-plain-delivered', badgeText: 'تم التسليم (كاش)' };
+      }
+      return { cardClass: 'card-delivered', statusClass: 'status-plain-delivered', badgeText: 'تم التسليم' };
+    }
+    if (d.subStage === 'cost_check') {
+      return { cardClass: 'card-cost-check', statusClass: 'status-plain-cost', badgeText: 'فحص التكلفة 💰' };
+    }
+    if (d.subStage === 'in_maintenance') {
+      return { cardClass: 'card-maintenance', statusClass: 'status-plain-maint', badgeText: 'قيد الصيانة ⚙️' };
+    }
+    return { cardClass: 'card-open', statusClass: 'status-plain-open', badgeText: 'ملف مفتوح 📂' };
+  }
+
+  function buildCollapsedHeader(d, plainStatusClass, badgeText) {
+    const returnText = d.isReturn ? `<span class="return-text-plain">(مرتجع ${d.returnCount || 1})</span>` : '';
+    const custBadge = d.customerType === 'فني' ? `<span class="badge-tech">فني</span>` : `<span class="badge-normal">زبون</span>`;
+    return `
+      <div class="card-collapsed-bar" onclick="toggleCardAccordion(this)">
+        <div class="collapsed-main-info">
+          <div class="collapsed-top-line">
+            <span class="receipt-plain">رقم ${d.receiptId}</span>
+            <span style="color:#94a3b8;">-</span>
+            <span class="collapsed-cust-name">${d.name || 'بدون اسم'}</span>
+            ${custBadge}
+            ${returnText}
+          </div>
+          <div class="collapsed-device-name">
+            ${d.deviceType || 'جهاز غير محدد'}
+          </div>
+        </div>
+        <div class="collapsed-left-side ${plainStatusClass}">
+          <span class="card-status-label">${badgeText}</span>
+          <span class="expand-arrow">▼</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function buildEditDeleteBar(devIdx) {
+    return `
+      <div class="admin-edit-delete-bar">
+        <button type="button" class="btn-edit" onclick="openEditModal(${devIdx})">✏️ تعديل</button>
+        <button type="button" class="btn-danger" onclick="askDeleteDeviceFile(${devIdx})">🗑️ حذف</button>
+      </div>
+    `;
+  }
+
+  function buildPhoneWaRow(d, devIdx = null, forceReadyStatus = false) {
+    const hasPhone = !!(d.phone && String(d.phone).trim() !== '');
+    const waIconBoxHtml = (hasPhone && devIdx !== null) ? `
+      <button type="button" class="wa-icon-box-btn" onclick="sendDirectWhatsAppReport(${devIdx}, ${!!forceReadyStatus})" title="إرسال تقرير عبر واتساب" aria-label="إرسال عبر واتساب">
+        <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16.002 3.2C8.94 3.2 3.2 8.938 3.2 16c0 2.26.59 4.465 1.71 6.41L3.1 28.9l6.65-1.745A12.74 12.74 0 0 0 16.002 28.8C23.062 28.8 28.8 23.06 28.8 16S23.062 3.2 16.002 3.2zm0 23.43c-1.92 0-3.8-.515-5.44-1.49l-.39-.23-3.95 1.036 1.054-3.85-.254-.4A10.57 10.57 0 0 1 5.37 16c0-5.86 4.77-10.63 10.632-10.63 5.86 0 10.63 4.77 10.63 10.63 0 5.862-4.77 10.63-10.63 10.63zm5.83-7.96c-.32-.16-1.89-.93-2.18-1.04-.29-.11-.5-.16-.72.16-.21.32-.82 1.04-1.01 1.25-.18.21-.37.24-.69.08-.32-.16-1.35-.5-2.57-1.59-.95-.85-1.59-1.9-1.78-2.22-.19-.32-.02-.49.14-.65.14-.14.32-.37.48-.56.16-.19.21-.32.32-.53.11-.21.05-.4-.03-.56-.08-.16-.72-1.73-.98-2.37-.26-.62-.52-.54-.72-.55h-.61c-.21 0-.56.08-.85.4-.29.32-1.12 1.09-1.12 2.66s1.15 3.09 1.31 3.3c.16.21 2.26 3.45 5.47 4.84.76.33 1.36.53 1.82.67.77.24 1.46.21 2.01.13.61-.09 1.89-.77 2.15-1.52.27-.75.27-1.39.19-1.52-.08-.13-.29-.21-.61-.37z"/>
+        </svg>
+      </button>
+    ` : '';
+
+    return `
+      <div class="phone-wa-row">
+        <div class="phone-info-box">
+          <span class="info-key">الهاتف:</span>
+          <span class="info-val" style="direction:ltr;">${hasPhone ? d.phone : 'غير مسجل'}</span>
+        </div>
+        ${waIconBoxHtml}
+      </div>
+    `;
+  }
+
+  function buildCleanInfoTable(d, devIdx = null, forceReadyStatus = false) {
+    let paymentHtml = '';
+    if (d.status === 'delivered' && d.paymentStatus) {
+      const payBadge = d.paymentStatus === 'debt'
+        ? `<span class="badge-debt">دين 📝</span>`
+        : `<span class="badge-cash">كاش 💵</span>`;
+      paymentHtml = `
+        <div class="info-row">
+          <span class="info-key">طريقة الدفع:</span>
+          <span class="info-val">${payBadge}</span>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="info-table">
+        <div class="info-row">
+          <span class="info-key">الرقم الداخلي:</span>
+          <span class="info-val">${d.receiptId}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">اسم الزبون:</span>
+          <span class="info-val">${d.name || '-'}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">نوع الزبون:</span>
+          <span class="info-val">${normalizeCustomerType(d.customerType)}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">تاريخ الاستلام:</span>
+          <span class="info-val date-text">${d.dateIn || '-'}</span>
+        </div>
+        ${d.dateReturned ? `
+        <div class="info-row">
+          <span class="info-key">تاريخ المرتجع:</span>
+          <span class="info-val date-text">${d.dateReturned}</span>
+        </div>` : ''}
+        ${d.dateClosed ? `
+        <div class="info-row">
+          <span class="info-key">تاريخ انتهاء الصيانة:</span>
+          <span class="info-val date-text">${d.dateClosed}</span>
+        </div>` : ''}
+        ${d.dateDelivered ? `
+        <div class="info-row">
+          <span class="info-key">تاريخ التسليم:</span>
+          <span class="info-val date-text">${d.dateDelivered}</span>
+        </div>` : ''}
+        ${paymentHtml}
+        ${d.barcode ? `
+        <div class="info-row">
+          <span class="info-key">باركود الجهاز:</span>
+          <span class="info-val">${d.barcode}</span>
+        </div>` : ''}
+      </div>
+      ${buildPhoneWaRow(d, devIdx, forceReadyStatus)}
+    `;
+  }
+
+  function getHistoryForBarcode(barcode, excludeReceiptId = null) {
+    const cleanCode = String(barcode || '').trim().toLowerCase();
+    if (!cleanCode) return [];
+
+    const matchingDevices = devices.filter(d => d.barcode && String(d.barcode).toLowerCase() === cleanCode);
+    let logs = [];
+
+    matchingDevices.forEach(d => {
+      if (Array.isArray(d.historyLog)) {
+        d.historyLog.forEach(entry => logs.push(entry));
+      }
+      if (String(d.receiptId) !== String(excludeReceiptId)) {
+        logs.push({
+          receiptId: d.receiptId,
+          deviceType: d.deviceType || 'جهاز',
+          name: d.name || '',
+          customerType: normalizeCustomerType(d.customerType),
+          date: d.dateReturned || d.dateIn || '-',
+          type: d.isReturn ? 'مرتجع' : 'ملف صيانة',
+          issue: d.issue || '-',
+          workDone: d.workDone || 'لم يُدوّن بعد',
+          cost: d.cost || '-'
+        });
+      }
+    });
+
+    const uniqueLogs = [];
+    const seen = new Set();
+    logs.forEach(item => {
+      const key = `${item.receiptId}_${item.issue}_${item.workDone}_${item.date}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        uniqueLogs.push(item);
+      }
+    });
+
+    return uniqueLogs;
+  }
+
+  function getHistoryForDeviceRecord(dev) {
+    let logs = [];
+    if (Array.isArray(dev.historyLog)) {
+      dev.historyLog.forEach(entry => logs.push(entry));
+    }
+    logs.push({
+      receiptId: dev.receiptId,
+      deviceType: dev.deviceType || 'جهاز',
+      name: dev.name || '',
+      customerType: normalizeCustomerType(dev.customerType),
+      date: dev.dateReturned || dev.dateIn || '-',
+      type: dev.isReturn ? 'مرتجع' : 'ملف صيانة',
+      issue: dev.issue || '-',
+      workDone: dev.workDone || 'لم يُدوّن بعد',
+      cost: dev.cost || '-'
+    });
+    return logs;
+  }
+
+  function buildHistoryHtml(historyList, defaultDeviceType = '') {
+    if (!historyList || historyList.length === 0) return '';
+
+    const itemsHtml = historyList.map((h) => {
+      const devLabel = h.deviceType || defaultDeviceType || 'جهاز';
+      return `
+        <div class="history-item ${h.type === 'مرتجع' ? 'is-return-item' : ''}">
+          <div class="history-item-header" onclick="toggleHistoryAccordion(this)">
+            <span>رقم ${h.receiptId} - ${devLabel} (${h.type || 'صيانة'})</span>
+            <span style="display:flex; align-items:center; gap:6px;">
+              <span class="date-text" style="font-size:12px;">${h.date || '-'}</span>
+              <span>▼</span>
+            </span>
+          </div>
+          <div class="history-item-body">
+            <div class="history-row"><strong>العطل السابق:</strong> ${h.issue}</div>
+            <div class="history-row"><strong>العمل المنجز:</strong> ${h.workDone || '-'}</div>
+            ${h.cost && h.cost !== '-' ? `<div class="history-row"><strong>التكلفة:</strong> ${h.cost}</div>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="history-container">
+        <div class="history-title">الصيانات السابقة (${historyList.length})</div>
+        ${itemsHtml}
+      </div>
+    `;
+  }
+
+  function setReceiptIdValue(val) {
+    document.getElementById('newId').value = val;
+    document.getElementById('newIdDisplay').innerText = val;
+  }
+
+  function resetReceiveForm() {
+    clearAllErrorsIn(document.getElementById('receiveSection'));
+    isReturnMode = false;
+    matchedDuplicateDevice = null;
+    matchedNameCustomerGroup = [];
+    lastCheckedCustomerName = '';
+    compiledBarcodeHistory = [];
+    selectedReceiveDeviceCategory = '';
+    const banner = document.getElementById('modeBanner');
+    banner.style.display = 'none';
+    banner.className = 'mode-banner';
+    document.getElementById('receivePreviousHistoryBox').style.display = 'none';
+    document.getElementById('receivePreviousHistoryBox').innerHTML = '';
+    document.getElementById('nameSuggestionsBox').style.display = 'none';
+    document.getElementById('nameSuggestionsBox').innerHTML = '';
+    document.getElementById('receivePageTitle').innerText = 'استلام جهاز جديد';
+    document.getElementById('issueLabel').innerText = 'العطل';
+    document.getElementById('saveDeviceBtn').innerText = 'حفظ واستلام';
+    setReceiptIdValue(getNextReceiptNumber());
+    setCustomerType('زبون');
+    document.getElementById('newBarcode').value = '';
+    document.getElementById('custName').value = '';
+    document.getElementById('custPhone').value = '';
+    selectReceiveDeviceType('', '', false);
+    document.getElementById('deviceIssue').value = '';
+  }
+
+  function clearQuickSearch() {
+    document.getElementById('mainSearchInput').value = '';
+    handleQuickSearch();
+  }
+
+  function goHome() {
+    stopScan();
+    document.querySelectorAll('.section-view').forEach(el => el.classList.remove('active'));
+    document.getElementById('mainSearchInput').value = '';
+    const quickResults = document.getElementById('quickSearchResults');
+    quickResults.innerHTML = '';
+    quickResults.style.display = 'none';
+    document.getElementById('homeSection').style.display = 'flex';
+    document.getElementById('topSearchContainer').style.display = 'flex';
+    updateCounter();
+    history.replaceState({ view: 'home' }, '');
+  }
+
+  function openSection(sectionId) {
+    stopScan();
+    document.getElementById('mainSearchInput').value = '';
+    const quickResults = document.getElementById('quickSearchResults');
+    quickResults.innerHTML = '';
+    quickResults.style.display = 'none';
+    document.getElementById('homeSection').style.display = 'none';
+    document.getElementById('topSearchContainer').style.display = 'none';
+    document.querySelectorAll('.section-view').forEach(el => el.classList.remove('active'));
+    document.getElementById(sectionId).classList.add('active');
+    
+    history.pushState({ view: sectionId }, '');
+
+    if (sectionId === 'receiveSection') {
+      resetReceiveForm();
+    } else if (sectionId === 'openFileSection') {
+      document.getElementById('searchOpenInput').value = '';
+      renderOpenDevices();
+    } else if (sectionId === 'deliverSection') {
+      document.getElementById('searchDeliverInput').value = '';
+      renderDeliverDevices();
+    } else if (sectionId === 'allDevicesSection') {
+      renderAllDevices();
+    } else if (sectionId === 'debtDevicesSection') {
+      renderDebtDevices();
+    } else if (sectionId === 'settingsSection') {
+      clearAllErrorsIn(document.getElementById('settingsSection'));
+      loadAppSettings();
+    }
+  }
+
+  window.addEventListener('popstate', () => {
+    stopScan();
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar && sidebar.classList.contains('open')) {
+      toggleSidebar();
+      history.pushState({ view: 'home' }, '');
+      return;
+    }
+
+    const activeSection = document.querySelector('.section-view.active');
+    if (activeSection) {
+      goHome();
+      return;
+    }
+
+    const mainSearch = document.getElementById('mainSearchInput');
+    if (mainSearch && mainSearch.value.trim() !== '') {
+      mainSearch.value = '';
+      handleQuickSearch();
+      history.pushState({ view: 'home' }, '');
+      return;
+    }
+
+    showConfirm('هل تريد بالتأكيد الخروج من تطبيق مركز الدمشقي؟', '🚪', () => {
+      window.close();
+    });
+    history.pushState({ view: 'home' }, '');
+  });
+
+  history.replaceState({ view: 'home' }, '');
+
+  function checkDuplicateBarcode(code) {
+    const cleanCode = String(code || '').trim();
+    if (!cleanCode) return;
+
+    const existing = devices.find(d => d.barcode && String(d.barcode).toLowerCase() === cleanCode.toLowerCase());
+    if (existing) {
+      matchedDuplicateDevice = existing;
+      compiledBarcodeHistory = getHistoryForBarcode(cleanCode);
+
+      document.getElementById('duplicateDeviceDetails').innerHTML = `
+        <div class="info-table" style="margin-bottom:8px;">
+          <div class="info-row">
+            <span class="info-key">آخر رقم داخلي:</span>
+            <span class="info-val">${existing.receiptId}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">الزبون:</span>
+            <span class="info-val">${existing.name || '-'}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">اسم الجهاز:</span>
+            <span class="info-val">${existing.deviceType || '-'}</span>
+          </div>
+        </div>
+        ${buildHistoryHtml(compiledBarcodeHistory, existing.deviceType)}
+      `;
+      document.getElementById('duplicateModal').classList.add('open');
+    }
+  }
+
+  function closeDuplicateModal() {
+    document.getElementById('duplicateModal').classList.remove('open');
+  }
+
+  function handleDuplicateChoice(choice) {
+    closeDuplicateModal();
+    if (!matchedDuplicateDevice) return;
+
+    const banner = document.getElementById('modeBanner');
+    const historyBox = document.getElementById('receivePreviousHistoryBox');
+
+    historyBox.innerHTML = buildHistoryHtml(compiledBarcodeHistory, matchedDuplicateDevice.deviceType);
+    historyBox.style.display = 'block';
+
+    if (choice === 'return') {
+      isReturnMode = true;
+      banner.className = 'mode-banner return-mode';
+      banner.innerText = `مرتجع — إعادة فتح الملف رقم ${matchedDuplicateDevice.receiptId}`;
+      banner.style.display = 'block';
+
+      document.getElementById('receivePageTitle').innerText = `استلام مرتجع`;
+      setReceiptIdValue(matchedDuplicateDevice.receiptId);
+      document.getElementById('custName').value = matchedDuplicateDevice.name || '';
+      clearFieldError(document.getElementById('custName'));
+      document.getElementById('custPhone').value = matchedDuplicateDevice.phone || '';
+      setReceiveDeviceTypeFromFullString(matchedDuplicateDevice.deviceType || '');
+      setCustomerType(matchedDuplicateDevice.customerType || 'زبون');
+      document.getElementById('issueLabel').innerText = 'سبب المرتجع';
+      document.getElementById('deviceIssue').value = '';
+      document.getElementById('saveDeviceBtn').innerText = 'حفظ المرتجع';
+    } else if (choice === 'new') {
+      isReturnMode = false;
+      banner.className = 'mode-banner new-linked-mode';
+      banner.innerText = `ملف جديد مرتبط بسجل (${compiledBarcodeHistory.length}) صيانات سابقة`;
+      banner.style.display = 'block';
+
+      document.getElementById('receivePageTitle').innerText = 'استلام جهاز جديد';
+      setReceiptIdValue(getNextReceiptNumber());
+      document.getElementById('custName').value = matchedDuplicateDevice.name || '';
+      clearFieldError(document.getElementById('custName'));
+      document.getElementById('custPhone').value = matchedDuplicateDevice.phone || '';
+      setReceiveDeviceTypeFromFullString(matchedDuplicateDevice.deviceType || '');
+      setCustomerType(matchedDuplicateDevice.customerType || 'زبون');
+      document.getElementById('issueLabel').innerText = 'العطل';
+      document.getElementById('deviceIssue').value = '';
+      document.getElementById('saveDeviceBtn').innerText = 'حفظ واستلام';
+    }
+  }
+
+  function handleCustomerNameInput(val) {
+    const normVal = normalizeSearchText(val);
+    const box = document.getElementById('nameSuggestionsBox');
+    box.innerHTML = '';
+
+    if (!normVal) {
+      box.style.display = 'none';
+      lastCheckedCustomerName = '';
+      return;
+    }
+
+    const uniqueCustomerMap = new Map();
+    devices.forEach(d => {
+      const cName = String(d.name || '').trim();
+      if (!cName) return;
+      const normName = normalizeSearchText(cName);
+      if (normName.includes(normVal)) {
+        if (!uniqueCustomerMap.has(normName)) {
+          uniqueCustomerMap.set(normName, {
+            name: cName,
+            phone: d.phone || '',
+            customerType: normalizeCustomerType(d.customerType),
+            count: 1
+          });
+        } else {
+          uniqueCustomerMap.get(normName).count++;
+        }
+      }
+    });
+
+    if (uniqueCustomerMap.size === 0) {
+      box.style.display = 'none';
+      return;
+    }
+
+    uniqueCustomerMap.forEach((info) => {
+      const item = document.createElement('div');
+      item.className = 'name-suggestion-item';
+      const badgeClass = info.customerType === 'فني' ? 'badge-tech' : 'badge-normal';
+      item.innerHTML = `
+        <div>
+          <span>${info.name}</span>
+          <span class="${badgeClass}" style="margin-right:4px;">${info.customerType}</span>
+        </div>
+        <span style="font-size:12px; color:#0369a1;">${info.count} جهاز ◀</span>
+      `;
+      item.onclick = () => {
+        document.getElementById('custName').value = info.name;
+        clearFieldError(document.getElementById('custName'));
+        box.style.display = 'none';
+        openDuplicateNameModal(info.name);
+      };
+      box.appendChild(item);
+    });
+
+    box.style.display = 'block';
+  }
+
+  function checkExactDuplicateName(val) {
+    const normVal = normalizeSearchText(val);
+    if (!normVal) return;
+
+    setTimeout(() => {
+      const box = document.getElementById('nameSuggestionsBox');
+      if (box) box.style.display = 'none';
+    }, 220);
+
+    const hasMatch = devices.some(d => normalizeSearchText(d.name) === normVal);
+    if (hasMatch && normalizeSearchText(lastCheckedCustomerName) !== normVal) {
+      openDuplicateNameModal(val.trim());
+    }
+  }
+
+  function openDuplicateNameModal(customerName) {
+    const normName = normalizeSearchText(customerName);
+    matchedNameCustomerGroup = devices.filter(d => normalizeSearchText(d.name) === normName);
+    if (matchedNameCustomerGroup.length === 0) return;
+
+    lastCheckedCustomerName = customerName;
+    const latestRecord = matchedNameCustomerGroup[0];
+
+    document.getElementById('duplicateNameSummary').innerHTML = `
+      <div class="info-table">
+        <div class="info-row">
+          <span class="info-key">الاسم المسجل:</span>
+          <span class="info-val">${latestRecord.name} (${normalizeCustomerType(latestRecord.customerType)})</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">رقم الهاتف:</span>
+          <span class="info-val">${latestRecord.phone || 'غير مسجل'}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">أجهزة سابقة:</span>
+          <span class="info-val">${matchedNameCustomerGroup.length} جهاز</span>
+        </div>
+      </div>
+    `;
+
+    const listContainer = document.getElementById('duplicateNameDevicesList');
+    listContainer.innerHTML = '';
+
+    matchedNameCustomerGroup.forEach(dev => {
+      const statusText = dev.status === 'open' ? 'قيد الصيانة' : (dev.status === 'closed' ? 'انتهاء الصيانة' : 'تم التسليم');
+      const card = document.createElement('div');
+      card.className = 'name-device-choice-card';
+      card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; font-weight:800; font-size:13px; color:#b45309;">
+          <span>وصل ${dev.receiptId} - ${dev.deviceType || 'جهاز'}</span>
+          <span style="font-size:11.5px; color:#0369a1;">${dev.dateIn || '-'} (${statusText})</span>
+        </div>
+        <div style="font-size:12.5px; color:#0f172a;">
+          <strong>العطل السابق:</strong> ${dev.issue || '-'}
+        </div>
+        <div style="font-size:12px; color:#15803d; font-weight:bold;">
+          استلام كمرتجع ↩
+        </div>
+      `;
+      card.onclick = () => handleNameReturnDeviceChoice(dev.receiptId);
+      listContainer.appendChild(card);
+    });
+
+    document.getElementById('duplicateNameModal').classList.add('open');
+  }
+
+  function closeDuplicateNameModal() {
+    document.getElementById('duplicateNameModal').classList.remove('open');
+  }
+
+  function handleNameNewDeviceChoice() {
+    closeDuplicateNameModal();
+    if (!matchedNameCustomerGroup || matchedNameCustomerGroup.length === 0) return;
+
+    const latest = matchedNameCustomerGroup[0];
+    isReturnMode = false;
+    matchedDuplicateDevice = null;
+    compiledBarcodeHistory = [];
+
+    const banner = document.getElementById('modeBanner');
+    banner.className = 'mode-banner new-linked-mode';
+    banner.innerText = `جهاز جديد للزبون (${latest.name})`;
+    banner.style.display = 'block';
+
+    document.getElementById('receivePreviousHistoryBox').style.display = 'none';
+    document.getElementById('receivePreviousHistoryBox').innerHTML = '';
+
+    document.getElementById('receivePageTitle').innerText = 'استلام جهاز جديد';
+    setReceiptIdValue(getNextReceiptNumber());
+    document.getElementById('custName').value = latest.name || '';
+    clearFieldError(document.getElementById('custName'));
+    document.getElementById('custPhone').value = latest.phone || '';
+    setCustomerType(latest.customerType || 'زبون');
+
+    selectReceiveDeviceType('', '', false);
+    document.getElementById('issueLabel').innerText = 'العطل';
+    document.getElementById('deviceIssue').value = '';
+    document.getElementById('saveDeviceBtn').innerText = 'حفظ واستلام';
+  }
+
+  function handleNameReturnDeviceChoice(receiptId) {
+    closeDuplicateNameModal();
+    const targetDev = devices.find(d => String(d.receiptId) === String(receiptId));
+    if (!targetDev) return;
+
+    isReturnMode = true;
+    matchedDuplicateDevice = targetDev;
+    compiledBarcodeHistory = getHistoryForDeviceRecord(targetDev);
+
+    const banner = document.getElementById('modeBanner');
+    banner.className = 'mode-banner return-mode';
+    banner.innerText = `مرتجع — إعادة فتح الملف رقم ${targetDev.receiptId}`;
+    banner.style.display = 'block';
+
+    const historyBox = document.getElementById('receivePreviousHistoryBox');
+    historyBox.innerHTML = buildHistoryHtml(compiledBarcodeHistory, targetDev.deviceType);
+    historyBox.style.display = 'block';
+
+    document.getElementById('receivePageTitle').innerText = `استلام مرتجع`;
+    setReceiptIdValue(targetDev.receiptId);
+    document.getElementById('custName').value = targetDev.name || '';
+    clearFieldError(document.getElementById('custName'));
+    document.getElementById('custPhone').value = targetDev.phone || '';
+    setReceiveDeviceTypeFromFullString(targetDev.deviceType || '');
+    setCustomerType(targetDev.customerType || 'زبون');
+
+    document.getElementById('issueLabel').innerText = 'سبب المرتجع';
+    document.getElementById('deviceIssue').value = '';
+    document.getElementById('saveDeviceBtn').innerText = 'حفظ المرتجع';
+    document.getElementById('deviceIssue').focus();
+  }
+
+  function askSaveNewDevice() {
+    const nameEl = document.getElementById('custName');
+    const typeBoxEl = document.getElementById('receiveDeviceTypeButtons');
+    const issueEl = document.getElementById('deviceIssue');
+
+    const name = nameEl.value.trim();
+    const deviceType = getComposedReceiveDeviceType();
+    const issue = issueEl.value.trim();
+
+    let firstInvalid = null;
+
+    if (!name) {
+      showFieldError(nameEl, '⚠️ يرجى كتابة اسم الزبون');
+      if (!firstInvalid) firstInvalid = nameEl;
+    } else {
+      clearFieldError(nameEl);
+    }
+
+    if (!deviceType) {
+      showFieldError(typeBoxEl, '⚠️ يرجى اختيار نوع الجهاز');
+      if (!firstInvalid) firstInvalid = typeBoxEl;
+    } else {
+      clearFieldError(typeBoxEl);
+    }
+
+    if (!issue) {
+      showFieldError(issueEl, '⚠️ يرجى كتابة وصف العطل');
+      if (!firstInvalid) firstInvalid = issueEl;
+    } else {
+      clearFieldError(issueEl);
+    }
+
+    if (firstInvalid) {
+      firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (typeof firstInvalid.focus === 'function' && firstInvalid !== typeBoxEl) {
+        firstInvalid.focus();
+      }
+      return;
+    }
+
+    showConfirm('هل أنت متأكد من حفظ واستلام هذا الجهاز؟', '➕', () => {
+      saveNewDevice();
+    });
+  }
+
+  function saveNewDevice() {
+    const receiptId = isReturnMode && matchedDuplicateDevice
+      ? matchedDuplicateDevice.receiptId
+      : getNextReceiptNumber();
+    const barcode = document.getElementById('newBarcode').value.trim();
+    const name = document.getElementById('custName').value.trim();
+    const phone = document.getElementById('custPhone').value.trim();
+    const deviceType = getComposedReceiveDeviceType();
+    const customerType = normalizeCustomerType(document.getElementById('customerTypeInput').value);
+    const issue = document.getElementById('deviceIssue').value.trim();
+
+    if (isReturnMode && matchedDuplicateDevice) {
+      matchedDuplicateDevice.historyLog = compiledBarcodeHistory;
+      matchedDuplicateDevice.name = name;
+      matchedDuplicateDevice.phone = phone;
+      matchedDuplicateDevice.deviceType = deviceType;
+      matchedDuplicateDevice.customerType = customerType;
+      matchedDuplicateDevice.isReturn = true;
+      matchedDuplicateDevice.returnCount = (matchedDuplicateDevice.returnCount || 0) + 1;
+      matchedDuplicateDevice.issue = issue;
+      matchedDuplicateDevice.workDone = '';
+      matchedDuplicateDevice.cost = '';
+      matchedDuplicateDevice.status = 'open';
+      matchedDuplicateDevice.subStage = '';
+      matchedDuplicateDevice.paymentStatus = '';
+      matchedDuplicateDevice.dateReturned = getCleanDate();
+
+      updateCounter();
+      resetReceiveForm();
+      goHome();
+      return;
+    }
+
+    localStorage.setItem('dimashqi_last_receipt_num', String(receiptId));
+
+    devices.unshift({
+      receiptId,
+      barcode: barcode,
+      name,
+      phone,
+      deviceType,
+      customerType,
+      issue,
+      workDone: '',
+      cost: '',
+      isReturn: false,
+      returnCount: 0,
+      historyLog: compiledBarcodeHistory,
+      status: 'open',
+      subStage: '',
+      paymentStatus: '',
+      dateIn: getCleanDate()
+    });
+
+    updateCounter();
+    resetReceiveForm();
+    goHome();
+  }
+
+  function getDeviceHistoryHtml(device) {
+    const logs = (Array.isArray(device.historyLog) && device.historyLog.length > 0)
+      ? device.historyLog
+      : getHistoryForBarcode(device.barcode, device.receiptId);
+    return buildHistoryHtml(logs, device.deviceType);
+  }
+
+  /* بحث دقيق يدعم الكلمات المتعددة وتوحيد الأحرف العربية */
+  function getDeviceMatchScore(d, rawQuery) {
+    const q = normalizeSearchText(rawQuery);
+    if (!q) return 1;
+
+    const nameNorm = normalizeSearchText(d.name);
+    const idNorm = normalizeSearchText(d.receiptId);
+    const barNorm = normalizeSearchText(d.barcode);
+    const typeNorm = normalizeSearchText(d.deviceType);
+    const phoneNorm = normalizeSearchText(d.phone);
+
+    const combined = `${nameNorm} ${idNorm} ${barNorm} ${typeNorm} ${phoneNorm}`;
+    const tokens = q.split(' ').filter(Boolean);
+
+    if (!tokens.every(t => combined.includes(t))) {
+      return 0;
+    }
+
+    if (idNorm === q || barNorm === q) return 100;
+    if (nameNorm === q) return 95;
+    if (nameNorm.startsWith(q)) return 85;
+    if (nameNorm.includes(q)) return 75;
+    if (idNorm.startsWith(q)) return 65;
+    return 50;
+  }
+
+  function matchesDeviceQuery(d, q) {
+    return getDeviceMatchScore(d, q) > 0;
+  }
+
+  function handleQuickSearch(keepDevIdx = null) {
+    const q = document.getElementById('mainSearchInput').value.trim();
+    const container = document.getElementById('quickSearchResults');
+    const homeSection = document.getElementById('homeSection');
+    const anySectionActive = !!document.querySelector('.section-view.active');
+    container.innerHTML = '';
+
+    if (!q) {
+      container.style.display = 'none';
+      if (!anySectionActive && homeSection) {
+        homeSection.style.display = 'flex';
+      }
+      return;
+    }
+
+    if (homeSection) homeSection.style.display = 'none';
+    container.style.display = 'flex';
+
+    const matchedItems = [];
+    devices.forEach((d, idx) => {
+      const score = getDeviceMatchScore(d, q);
+      if (score > 0) matchedItems.push({ d, idx, score });
+    });
+
+    matchedItems.sort((a, b) => b.score - a.score);
+
+    const bar = document.createElement('div');
+    bar.className = 'search-results-bar';
+    bar.innerHTML = `
+      <span>النتائج المطابقة: ${matchedItems.length}</span>
+      <button type="button" class="clear-search-pill" onclick="clearQuickSearch()">مسح البحث ✕</button>
+    `;
+    container.appendChild(bar);
+
+    if (matchedItems.length === 0) {
+      const emptyCard = document.createElement('div');
+      emptyCard.className = 'device-card';
+      emptyCard.style.cssText = 'padding:18px; text-align:center; color:var(--text-muted); font-weight:700;';
+      emptyCard.innerText = 'لا يوجد ملف مطابق للبحث';
+      container.appendChild(emptyCard);
+      return;
+    }
+
+    matchedItems.forEach(({ d, idx }) => {
+      const theme = getCardVisualTheme(d);
+      const isExpanded = (keepDevIdx !== null && Number(keepDevIdx) === idx) || matchedItems.length === 1;
+      const isReadyState = (d.status === 'closed' || d.status === 'delivered');
+
+      let actionBtn = '';
+      if (d.status === 'closed') {
+        actionBtn = `<button class="btn-success" onclick="jumpToDevice('deliverSection', ${idx})">الذهاب للتسليم</button>`;
+      } else if (d.status === 'open') {
+        actionBtn = `<button class="btn-primary" onclick="jumpToDevice('openFileSection', ${idx})">فتح ملف الصيانة</button>`;
+      } else if (d.status === 'delivered' && d.paymentStatus === 'debt') {
+        actionBtn = `<button class="btn-success" onclick="askSettleDebt(${idx})">💵 تسديد الدين</button>`;
+      }
+
+      const workHtml = (d.workDone && d.workDone.trim()) ? `
+        <div class="section-block block-work">
+          <span class="section-block-title">الصيانة المنجزة:</span>
+          <span class="section-block-text">${d.workDone}</span>
+        </div>` : '';
+
+      const costHtml = (d.cost && d.cost.trim()) ? `
+        <div class="section-block block-cost">
+          <span class="section-block-title">التكلفة:</span>
+          <span class="section-block-text">${d.cost}</span>
+        </div>` : '';
+
+      const paymentPill = (d.status === 'delivered' && d.paymentStatus) ? `
+        <div class="quick-meta-pill">
+          <span class="quick-meta-label">طريقة الدفع</span>
+          <span class="quick-meta-val">${d.paymentStatus === 'debt' ? '<span class="badge-debt">دين 📝</span>' : '<span class="badge-cash">كاش 💵</span>'}</span>
+        </div>` : '';
+
+      const barcodePill = d.barcode ? `
+        <div class="quick-meta-pill">
+          <span class="quick-meta-label">الباركود</span>
+          <span class="quick-meta-val" style="direction:ltr; text-align:right;">${d.barcode}</span>
+        </div>` : '';
+
+      const card = document.createElement('div');
+      card.className = `device-card ${theme.cardClass} ${isExpanded ? 'expanded' : ''}`;
+      card.innerHTML = `
+        ${buildCollapsedHeader(d, theme.statusClass, theme.badgeText)}
+        <div class="card-body-content">
+          <div class="quick-meta-grid">
+            <div class="quick-meta-pill">
+              <span class="quick-meta-label">تاريخ الاستلام</span>
+              <span class="quick-meta-val date-text">${d.dateIn || '-'}</span>
+            </div>
+            ${d.dateDelivered ? `
+            <div class="quick-meta-pill">
+              <span class="quick-meta-label">تاريخ التسليم</span>
+              <span class="quick-meta-val date-text">${d.dateDelivered}</span>
+            </div>` : (d.dateClosed ? `
+            <div class="quick-meta-pill">
+              <span class="quick-meta-label">انتهاء الصيانة</span>
+              <span class="quick-meta-val date-text">${d.dateClosed}</span>
+            </div>` : '')}
+            ${paymentPill}
+            ${barcodePill}
+          </div>
+
+          ${buildPhoneWaRow(d, idx, isReadyState)}
+
+          <div class="section-block block-issue">
+            <span class="section-block-title">العطل:</span>
+            <span class="section-block-text">${d.issue || '-'}</span>
+          </div>
+          ${workHtml}
+          ${costHtml}
+          ${getDeviceHistoryHtml(d)}
+
+          <div class="${actionBtn ? 'actions-row' : ''}" style="margin-top:2px;">
+            ${actionBtn}
+            <button class="btn-share" onclick="shareDeviceReport(${idx}, ${isReadyState})">📤 مشاركة</button>
+          </div>
+          ${buildEditDeleteBar(idx)}
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  function jumpToDevice(sectionId, devIdx) {
+    const dev = devices[devIdx];
+    if (!dev) return;
+    openSection(sectionId);
+    if (sectionId === 'openFileSection') {
+      document.getElementById('searchOpenInput').value = dev.receiptId;
+      renderOpenDevices(true, devIdx);
+    } else if (sectionId === 'deliverSection') {
+      document.getElementById('searchDeliverInput').value = dev.receiptId;
+      renderDeliverDevices(true, devIdx);
+    }
+  }
+
+  function buildDeviceReportText(dev, workText, costText, isReadyForDelivery = false, customCfg = null, customTitle = null) {
+    const cfg = customCfg || getWaReportConfig();
+    const effectiveCost = String(costText || dev.cost || '').trim();
+    const isDelivered = dev.status === 'delivered';
+    const isDebtDelivered = isDelivered && dev.paymentStatus === 'debt';
+    const isClosed = dev.status === 'closed' || isReadyForDelivery;
+    const isCostCheck = dev.status === 'open' && dev.subStage === 'cost_check';
+    const isInMaintenance = dev.status === 'open' && dev.subStage === 'in_maintenance';
+
+    let paymentSuffix = '';
+    if (isDelivered && dev.paymentStatus === 'cash') paymentSuffix = ' (كاش)';
+
+    let statusLine = '';
+    if (isDebtDelivered) {
+      statusLine = effectiveCost
+        ? `*الحالة: تم تسليم الجهاز للزبون (بالدين).*\n*المبلغ المستحق للتسديد:* ${effectiveCost}\nيرجى التكرم بتسديد المبلغ المستحق في أقرب وقت، وشكراً لتعاملكم.`
+        : `*الحالة: تم تسليم الجهاز للزبون (بالدين).*\nيرجى التكرم بتسديد المبلغ المستحق في أقرب وقت، وشكراً لتعاملكم.`;
+    } else if (isDelivered) {
+      statusLine = `*الحالة: تم تسليم الجهاز للزبون بنجاح${paymentSuffix}.*`;
+    } else if (isClosed) {
+      statusLine = '*الحالة: انتهت صيانة الجهاز بنجاح وهو جاهز، تفضل بالاستلام.*';
+    } else if (isCostCheck) {
+      statusLine = effectiveCost
+        ? `*الحالة: تم فحص الجهاز (فحص التكلفة)، التكلفة التقديرية للصيانة: ${effectiveCost}، يرجى التأكيد للمتابعة.*`
+        : '*الحالة: الجهاز في مرحلة فحص التكلفة التقديرية.*';
+    } else if (isInMaintenance) {
+      statusLine = '*الحالة: جارٍ صيانة الجهاز حالياً ولم ينتهِ بعد.*';
+    } else {
+      statusLine = '*الحالة: تم استلام الجهاز وهو قيد الفحص والمتابعة.*';
+    }
+
+    const appTitle = customTitle || localStorage.getItem('dimashqi_app_title') || 'مركز الدمشقي للصيانة';
+    const lines = [];
+
+    if (cfg.showTitle) {
+      lines.push(`*${appTitle}*`);
+      lines.push('━━━━━━━━━━━━━━');
+    }
+
+    if (cfg.showReceiptId) {
+      lines.push(`*${cfg.labelReceiptId || 'رقم الوصل'}:* ${dev.receiptId}`);
+    }
+
+    if (cfg.showName) {
+      const custTypePart = cfg.showCustomerType ? ` (${normalizeCustomerType(dev.customerType)})` : '';
+      lines.push(`*${cfg.labelName || 'الزبون'}:* ${dev.name || '-'}${custTypePart}`);
+    } else if (cfg.showCustomerType) {
+      lines.push(`*نوع الزبون:* ${normalizeCustomerType(dev.customerType)}`);
+    }
+
+    if (cfg.showDateIn) {
+      lines.push(`*${cfg.labelDateIn || 'تاريخ الاستلام'}:* ${dev.dateIn || '-'}`);
+    }
+
+    if (cfg.showDeviceType) {
+      lines.push(`*${cfg.labelDeviceType || 'نوع الجهاز'}:* ${dev.deviceType || '-'}`);
+    }
+
+    if (cfg.showBarcode) {
+      lines.push(`*${cfg.labelBarcode || 'باركود الجهاز'}:* ${dev.barcode || 'غير مسجل'}`);
+    }
+
+    if (cfg.showIssue) {
+      lines.push(`*${cfg.labelIssue || 'العطل'}:* ${dev.issue || '-'}`);
+    }
+
+    if (cfg.showWorkDone) {
+      lines.push(`*${cfg.labelWorkDone || 'القطع المستبدلة / الصيانة'}:*\n${workText || dev.workDone || 'تم الفحص والصيانة'}`);
+    }
+
+    if (cfg.showCost) {
+      const costLabel = isCostCheck ? 'التكلفة التقديرية' : (isDebtDelivered ? 'المبلغ المستحق (دين)' : (cfg.labelCost || 'التكلفة'));
+      lines.push(`*${costLabel}:* ${effectiveCost || 'تحدد عند الاستلام'}`);
+    }
+
+    const hasFooter = cfg.showFooter && cfg.footerText && cfg.footerText.trim() !== '';
+    if ((cfg.showStatus || isDebtDelivered || hasFooter) && lines.length > 0 && lines[lines.length - 1] !== '━━━━━━━━━━━━━━') {
+      lines.push('━━━━━━━━━━━━━━');
+    }
+
+    if (cfg.showStatus || isDebtDelivered) {
+      lines.push(statusLine);
+    }
+
+    if (hasFooter) {
+      lines.push(cfg.footerText.trim());
+    }
+
+    return lines.join('\n');
+  }
+
+  function autoSyncOpenFields(devIdx) {
+    const dev = devices[devIdx];
+    if (!dev) return;
+
+    const workInput = document.getElementById(`work_${devIdx}`);
+    if (workInput) {
+      dev.workDone = workInput.value.trim();
+    }
+
+    const costInput = document.getElementById(`quickCostInput_${devIdx}`);
+    if (costInput) {
+      dev.cost = costInput.value.trim();
+      const costTextEl = document.getElementById(`costValueText_${devIdx}`);
+      if (costTextEl) costTextEl.innerText = dev.cost || 'غير محددة';
+    }
+
+    localStorage.setItem('dimashqi_devices', JSON.stringify(devices));
+  }
+
+  function renderOpenDevices(autoExpandSingle = false, keepExpandedIdx = null) {
+    const q = document.getElementById('searchOpenInput').value.trim();
+    const container = document.getElementById('openDevicesList');
+    const countLabel = document.getElementById('openFilesCountLabel');
+    container.innerHTML = '';
+
+    const matchedItems = [];
+    devices.forEach((d, idx) => {
+      if (d.status === 'open') {
+        const score = getDeviceMatchScore(d, q);
+        if (score > 0) matchedItems.push({ d, idx, score });
+      }
+    });
+
+    if (countLabel) {
+      countLabel.innerText = `${matchedItems.length} ملف`;
+    }
+
+    if (q) matchedItems.sort((a, b) => b.score - a.score);
+
+    if (matchedItems.length === 0) {
+      container.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding: 20px 0; font-weight:700;">لا توجد ملفات مفتوحة</p>';
+      return;
+    }
+
+    matchedItems.forEach(({ d, idx }) => {
+      const theme = getCardVisualTheme(d);
+      const isExpanded = (autoExpandSingle && matchedItems.length === 1) || (keepExpandedIdx !== null && Number(keepExpandedIdx) === idx);
+
+      const barcodePill = d.barcode ? `
+        <div class="quick-meta-pill">
+          <span class="quick-meta-label">الباركود</span>
+          <span class="quick-meta-val" style="direction:ltr; text-align:right;">${d.barcode}</span>
+        </div>` : '';
+
+      const returnDatePill = d.dateReturned ? `
+        <div class="quick-meta-pill">
+          <span class="quick-meta-label">تاريخ المرتجع</span>
+          <span class="quick-meta-val date-text">${d.dateReturned}</span>
+        </div>` : '';
+
+      const card = document.createElement('div');
+      card.id = `openCard_${idx}`;
+      card.className = `device-card ${theme.cardClass} ${isExpanded ? 'expanded' : ''}`;
+      card.innerHTML = `
+        ${buildCollapsedHeader(d, theme.statusClass, theme.badgeText)}
+        <div class="card-body-content">
+          <div class="quick-meta-grid">
+            <div class="quick-meta-pill">
+              <span class="quick-meta-label">الاستلام</span>
+              <span class="quick-meta-val date-text">${d.dateIn || '-'}</span>
+            </div>
+            <div class="quick-meta-pill cost-pill" id="costDisplayBlock_${idx}">
+              <span class="quick-meta-label">التكلفة</span>
+              <span class="quick-meta-val" id="costValueText_${idx}">${d.cost || 'غير محددة'}</span>
+            </div>
+            ${returnDatePill}
+            ${barcodePill}
+          </div>
+
+          ${buildPhoneWaRow(d, idx, false)}
+
+          <div class="section-block block-issue">
+            <span class="section-block-title">العطل:</span>
+            <span class="section-block-text">${d.issue || '-'}</span>
+          </div>
+
+          ${getDeviceHistoryHtml(d)}
+
+          <div class="workflow-buttons-grid">
+            <button type="button" id="btnCostStage_${idx}" class="btn-cost-check ${d.subStage === 'cost_check' ? 'active-stage' : ''}" onclick="handleCostCheckClick(${idx})">
+              <span style="font-size:16px;">💰</span>
+              <span>فحص التكلفة</span>
+            </button>
+
+            <button type="button" id="btnMaintStage_${idx}" class="btn-in-maintenance ${d.subStage === 'in_maintenance' ? 'active-stage' : ''}" onclick="handleInMaintenanceClick(${idx})">
+              <span style="font-size:16px;">⚙️</span>
+              <span>قيد الصيانة</span>
+            </button>
+
+            <button type="button" class="btn-close-file" onclick="openCloseFileModal(${idx})">
+              <span style="font-size:16px;">✅</span>
+              <span>انتهاء الصيانة</span>
+            </button>
+          </div>
+
+          <div class="quick-cost-popover" id="costBox_${idx}">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:12.5px; font-weight:800; color:#6b21a8;">التكلفة التقديرية</span>
+              <button type="button" style="background:none; border:none; font-weight:bold; color:#6b21a8; cursor:pointer;" onclick="document.getElementById('costBox_${idx}').classList.remove('open')">✕</button>
+            </div>
+            <div class="search-bar">
+              <input type="text" id="quickCostInput_${idx}" placeholder="المبلغ..." value="${d.cost || ''}" oninput="autoSyncOpenFields(${idx})">
+              <button type="button" class="btn-primary" style="width:auto; padding:0 16px; background:#7e22ce;" onclick="saveQuickCostInline(${idx})">تثبيت</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>الملاحظات / القطع</label>
+            <textarea id="work_${idx}" placeholder="اكتب ملاحظات الصيانة..." oninput="autoSyncOpenFields(${idx})">${d.workDone || ''}</textarea>
+          </div>
+
+          <div class="actions-row">
+            <button type="button" id="saveNotesBtn_${idx}" class="btn-primary" onclick="saveOpenCardNotes(${idx})">💾 حفظ</button>
+            <button type="button" class="btn-share" onclick="shareDeviceReport(${idx}, false)">📤 مشاركة</button>
+          </div>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  function applyCardVisualStageInline(devIdx) {
+    const dev = devices[devIdx];
+    const card = document.getElementById(`openCard_${devIdx}`);
+    if (!dev || !card) return;
+
+    const theme = getCardVisualTheme(dev);
+    const isExpanded = card.classList.contains('expanded');
+    card.className = `device-card ${theme.cardClass} ${isExpanded ? 'expanded' : ''}`;
+
+    const leftSide = card.querySelector('.collapsed-left-side');
+    if (leftSide) {
+      leftSide.className = `collapsed-left-side ${theme.statusClass}`;
+    }
+    const statusLabel = card.querySelector('.card-status-label');
+    if (statusLabel) {
+      statusLabel.innerText = theme.badgeText;
+    }
+
+    const btnCost = document.getElementById(`btnCostStage_${devIdx}`);
+    const btnMaint = document.getElementById(`btnMaintStage_${devIdx}`);
+    if (btnCost) btnCost.classList.toggle('active-stage', dev.subStage === 'cost_check');
+    if (btnMaint) btnMaint.classList.toggle('active-stage', dev.subStage === 'in_maintenance');
+  }
+
+  function handleCostCheckClick(devIdx) {
+    const dev = devices[devIdx];
+    if (!dev) return;
+
+    dev.subStage = 'cost_check';
+    updateCounter();
+    applyCardVisualStageInline(devIdx);
+
+    const box = document.getElementById(`costBox_${devIdx}`);
+    if (box) {
+      box.classList.add('open');
+      const input = document.getElementById(`quickCostInput_${devIdx}`);
+      if (input) input.focus();
+    }
+  }
+
+  function saveQuickCostInline(devIdx) {
+    const dev = devices[devIdx];
+    if (!dev) return;
+
+    const input = document.getElementById(`quickCostInput_${devIdx}`);
+    if (input) {
+      const val = input.value.trim();
+      if (!val) {
+        showFieldError(input, '⚠️ يرجى كتابة التكلفة قبل التثبيت');
+        input.focus();
+        return;
+      }
+      clearFieldError(input);
+
+      dev.cost = val;
+      dev.subStage = 'cost_check';
+      updateCounter();
+
+      const costTextEl = document.getElementById(`costValueText_${devIdx}`);
+      if (costTextEl) costTextEl.innerText = dev.cost || 'غير محددة';
+
+      const box = document.getElementById(`costBox_${devIdx}`);
+      if (box) box.classList.remove('open');
+
+      applyCardVisualStageInline(devIdx);
+    }
+  }
+
+  function handleInMaintenanceClick(devIdx) {
+    const dev = devices[devIdx];
+    if (!dev) return;
+
+    dev.subStage = 'in_maintenance';
+    updateCounter();
+    applyCardVisualStageInline(devIdx);
+
+    const box = document.getElementById(`costBox_${devIdx}`);
+    if (box) box.classList.remove('open');
+  }
+
+  function saveOpenCardNotes(devIdx) {
+    autoSyncOpenFields(devIdx);
+    updateCounter();
+
+    const btn = document.getElementById(`saveNotesBtn_${devIdx}`);
+    if (btn) {
+      const oldText = btn.innerText;
+      btn.innerText = '✅ تم الحفظ';
+      btn.style.background = '#16a34a';
+      setTimeout(() => {
+        btn.innerText = oldText;
+        btn.style.background = '';
+      }, 1400);
+    }
+  }
+
+  function openCloseFileModal(devIdx) {
+    const dev = devices[devIdx];
+    if (!dev) return;
+
+    autoSyncOpenFields(devIdx);
+
+    document.getElementById('closeFileReceiptLabel').innerText = dev.receiptId;
+    document.getElementById('closeFileDeviceIndex').value = devIdx;
+    document.getElementById('closeFileDeviceSummary').innerText = `${dev.name || '-'} — ${dev.deviceType || '-'}`;
+    document.getElementById('closeFilePartsInput').value = dev.workDone || '';
+    document.getElementById('closeFileFinalCostInput').value = dev.cost || '';
+
+    document.getElementById('closeFileModal').classList.add('open');
+    setTimeout(() => {
+      document.getElementById('closeFilePartsInput').focus();
+    }, 100);
+  }
+
+  function hideCloseFileModal() {
+    document.getElementById('closeFileModal').classList.remove('open');
+  }
+
+  function confirmCloseDeviceFileModal() {
+    const devIdx = parseInt(document.getElementById('closeFileDeviceIndex').value, 10);
+    const dev = devices[devIdx];
+    if (!dev) return;
+
+    const partsReplaced = document.getElementById('closeFilePartsInput').value.trim();
+    const finalCost = document.getElementById('closeFileFinalCostInput').value.trim();
+
+    dev.workDone = partsReplaced || 'تمت الصيانة والفحص';
+    dev.cost = finalCost || 'تحدد عند التسليم';
+    dev.status = 'closed';
+    dev.subStage = 'closed';
+    dev.dateClosed = getCleanDate();
+
+    hideCloseFileModal();
+    updateCounter();
+    renderOpenDevices();
+    renderDeliverDevices();
+    renderAllDevices();
+    renderDebtDevices();
+  }
+
+  function sendDirectWhatsAppReport(devIdx, forceReadyStatus = false) {
+    const dev = devices[devIdx];
+    if (!dev || !dev.phone) return;
+
+    if (document.getElementById('openFileSection').classList.contains('active')) {
+      autoSyncOpenFields(devIdx);
+    }
+    updateCounter();
+
+    const isReady = forceReadyStatus || dev.status === 'closed' || dev.status === 'delivered';
+    const cleanPhone = normalizeSyrianPhoneForWhatsApp(dev.phone);
+    if (!cleanPhone) return;
+
+    const reportText = buildDeviceReportText(dev, dev.workDone, dev.cost, isReady);
+    const encodedText = encodeURIComponent(reportText);
+    const fallbackUrl = `https://wa.me/${cleanPhone}?text=${encodedText}`;
+    const appType = getWhatsAppAppType();
+    const isAndroid = /Android/i.test(navigator.userAgent || '');
+
+    if (isAndroid) {
+      const targetPackage = appType === 'business' ? 'com.whatsapp.w4b' : 'com.whatsapp';
+      const intentUrl = `intent://send?phone=${cleanPhone}&text=${encodedText}#Intent;scheme=whatsapp;package=${targetPackage};S.browser_fallback_url=${encodeURIComponent(fallbackUrl)};end;`;
+      window.location.href = intentUrl;
+    } else {
+      window.open(fallbackUrl, '_blank');
+    }
+  }
+
+  async function shareDeviceReport(devIdx, forceReadyStatus = false) {
+    const dev = devices[devIdx];
+    if (!dev) return;
+
+    if (document.getElementById('openFileSection').classList.contains('active')) {
+      autoSyncOpenFields(devIdx);
+    }
+    updateCounter();
+
+    const isReady = forceReadyStatus || dev.status === 'closed' || dev.status === 'delivered';
+    const reportText = buildDeviceReportText(dev, dev.workDone, dev.cost, isReady);
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `ملف صيانة جهاز رقم ${dev.receiptId} - ${dev.name}`,
+          text: reportText
+        });
+        return;
+      } catch (err) {}
+    }
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(reportText);
+        return;
+      }
+    } catch (e) {}
+  }
+
+  function renderDeliverDevices(autoExpandSingle = false, keepExpandedIdx = null) {
+    const q = document.getElementById('searchDeliverInput').value.trim();
+    const container = document.getElementById('deliverDevicesList');
+    container.innerHTML = '';
+
+    const matchedItems = [];
+    devices.forEach((d, idx) => {
+      if (d.status !== 'delivered') {
+        const score = getDeviceMatchScore(d, q);
+        if (score > 0) matchedItems.push({ d, idx, score });
+      }
+    });
+
+    matchedItems.sort((a, b) => {
+      if (q && b.score !== a.score) return b.score - a.score;
+      if (a.d.status === 'closed' && b.d.status !== 'closed') return -1;
+      if (a.d.status !== 'closed' && b.d.status === 'closed') return 1;
+      return 0;
+    });
+
+    if (matchedItems.length === 0) {
+      container.innerHTML = '<p style="color:var(--text-muted); text-align:center;">لا توجد أجهزة بانتظار التسليم حالياً.</p>';
+      return;
+    }
+
+    matchedItems.forEach(({ d, idx }) => {
+      const theme = getCardVisualTheme(d);
+      const isExpanded = (autoExpandSingle && matchedItems.length === 1) || (keepExpandedIdx !== null && Number(keepExpandedIdx) === idx);
+      const isReadyState = (d.status === 'closed');
+
+      const card = document.createElement('div');
+      card.className = `device-card ${theme.cardClass} ${isExpanded ? 'expanded' : ''}`;
+      card.innerHTML = `
+        ${buildCollapsedHeader(d, theme.statusClass, theme.badgeText)}
+        <div class="card-body-content">
+          ${buildCleanInfoTable(d, idx, isReadyState)}
+
+          <div class="section-block block-device">
+            <span class="section-block-title">نوع الجهاز:</span>
+            <span class="section-block-text">${d.deviceType || 'غير محدد'}</span>
+          </div>
+
+          <div class="section-block block-issue">
+            <span class="section-block-title">العطل:</span>
+            <span class="section-block-text">${d.issue || '-'}</span>
+          </div>
+
+          <div class="section-block block-work">
+            <span class="section-block-title">القطع المستبدلة / تقرير الصيانة:</span>
+            <span class="section-block-text">${d.workDone || 'لم يُدوّن بعد'}</span>
+          </div>
+
+          <div class="section-block block-cost">
+            <span class="section-block-title">التكلفة النهائية:</span>
+            <span class="section-block-text">${d.cost || 'غير محددة'}</span>
+          </div>
+
+          ${getDeviceHistoryHtml(d)}
+          
+          <div class="actions-row">
+            <button class="btn-share" onclick="shareDeviceReport(${idx}, ${isReadyState})">مشاركة التقرير</button>
+            <button class="btn-success" onclick="askConfirmDelivery(${idx})">تسليم الجهاز</button>
+          </div>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  function askConfirmDelivery(devIdx) {
+    const dev = devices[devIdx];
+    if (!dev) return;
+
+    document.getElementById('deliveryPaymentDeviceIndex').value = devIdx;
+    document.getElementById('deliveryModalReceiptLabel').innerText = dev.receiptId;
+    document.getElementById('deliveryModalSummary').innerHTML = `
+      <div>الزبون: <strong>${dev.name || '-'}</strong></div>
+      <div>الجهاز: <strong>${dev.deviceType || '-'}</strong></div>
+      <div>التكلفة: <strong style="color:#6b21a8;">${dev.cost || 'غير محددة'}</strong></div>
+    `;
+    document.getElementById('deliveryPaymentModal').classList.add('open');
+  }
+
+  function closeDeliveryPaymentModal() {
+    document.getElementById('deliveryPaymentModal').classList.remove('open');
+  }
+
+  function confirmDeliveryWithPayment(paymentType) {
+    const devIdx = parseInt(document.getElementById('deliveryPaymentDeviceIndex').value, 10);
+    const dev = devices[devIdx];
+    closeDeliveryPaymentModal();
+    if (!dev) return;
+
+    dev.status = 'delivered';
+    dev.paymentStatus = paymentType === 'debt' ? 'debt' : 'cash';
+    dev.dateDelivered = getCleanDate();
+
+    updateCounter();
+    renderDeliverDevices();
+    renderAllDevices();
+    renderDebtDevices();
+    handleQuickSearch();
+  }
+
+  function askSettleDebt(devIdx) {
+    const dev = devices[devIdx];
+    if (!dev) return;
+    showConfirm(`هل تم تسديد دين الجهاز رقم ${dev.receiptId} للزبون (${dev.name}) وتحويله إلى كاش؟`, '💵', () => {
+      dev.paymentStatus = 'cash';
+      updateCounter();
+      refreshActiveViews();
+    });
+  }
+
+  function renderDebtDevices(keepExpandedIdx = null) {
+    const searchInput = document.getElementById('searchDebtInput');
+    const q = searchInput ? searchInput.value.trim() : '';
+    const container = document.getElementById('debtDevicesList');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const matchedItems = [];
+    devices.forEach((d, idx) => {
+      if (d.status === 'delivered' && d.paymentStatus === 'debt') {
+        const score = getDeviceMatchScore(d, q);
+        if (score > 0) matchedItems.push({ d, idx, score });
+      }
+    });
+
+    if (q) matchedItems.sort((a, b) => b.score - a.score);
+
+    if (matchedItems.length === 0) {
+      container.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px 0;">لا توجد ملفات مسلّمة بالدين حالياً.</p>';
+      return;
+    }
+
+    matchedItems.forEach(({ d, idx }) => {
+      const theme = getCardVisualTheme(d);
+      const isExpanded = (keepExpandedIdx !== null && Number(keepExpandedIdx) === idx);
+
+      const card = document.createElement('div');
+      card.id = `debtCard_${idx}`;
+      card.className = `device-card ${theme.cardClass} ${isExpanded ? 'expanded' : ''}`;
+      card.innerHTML = `
+        ${buildCollapsedHeader(d, theme.statusClass, theme.badgeText)}
+        <div class="card-body-content">
+          ${buildCleanInfoTable(d, idx, true)}
+
+          <div class="section-block block-device">
+            <span class="section-block-title">نوع الجهاز:</span>
+            <span class="section-block-text">${d.deviceType || 'غير محدد'}</span>
+          </div>
+
+          <div class="section-block block-issue">
+            <span class="section-block-title">العطل:</span>
+            <span class="section-block-text">${d.issue || '-'}</span>
+          </div>
+
+          <div class="section-block block-work">
+            <span class="section-block-title">القطع المستبدلة / العمل المنجز:</span>
+            <span class="section-block-text">${d.workDone || '-'}</span>
+          </div>
+
+          <div class="section-block block-cost">
+            <span class="section-block-title">المبلغ (دين):</span>
+            <span class="section-block-text">${d.cost || 'غير محدد'}</span>
+          </div>
+
+          ${getDeviceHistoryHtml(d)}
+
+          <button type="button" class="btn-success" onclick="askSettleDebt(${idx})">💵 تسديد الدين (تحويل إلى كاش)</button>
+
+          <div class="actions-row-3">
+            <button type="button" class="btn-edit" onclick="openEditModal(${idx})">✏️ تعديل</button>
+            <button type="button" class="btn-share" style="padding:10px;" onclick="shareDeviceReport(${idx}, true)">مشاركة التقرير</button>
+            <button type="button" class="btn-danger" onclick="askDeleteDeviceFile(${idx})">🗑️ حذف</button>
+          </div>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  function renderAllDevices(keepExpandedIdx = null) {
+    const q = document.getElementById('searchAllInput').value.trim();
+    const container = document.getElementById('allDevicesList');
+    container.innerHTML = '';
+
+    const matchedItems = [];
+    devices.forEach((d, idx) => {
+      let matchesFilter = true;
+      if (currentAllDevicesFilter === 'in_shop') {
+        matchesFilter = (d.status === 'open' || d.status === 'closed');
+      } else if (currentAllDevicesFilter === 'open') {
+        matchesFilter = (d.status === 'open');
+      } else if (currentAllDevicesFilter === 'closed') {
+        matchesFilter = (d.status === 'closed');
+      } else if (currentAllDevicesFilter === 'delivered') {
+        matchesFilter = (d.status === 'delivered');
+      }
+
+      if (matchesFilter) {
+        const score = getDeviceMatchScore(d, q);
+        if (score > 0) matchedItems.push({ d, idx, score });
+      }
+    });
+
+    if (q) matchedItems.sort((a, b) => b.score - a.score);
+
+    if (matchedItems.length === 0) {
+      container.innerHTML = '<p style="color:var(--text-muted); text-align:center;">لا توجد أجهزة مسجلة مطابقة في هذا القسم.</p>';
+      return;
+    }
+
+    matchedItems.forEach(({ d, idx }) => {
+      const theme = getCardVisualTheme(d);
+      const isExpanded = (keepExpandedIdx !== null && Number(keepExpandedIdx) === idx);
+      const isReadyState = (d.status === 'closed' || d.status === 'delivered');
+
+      const settleDebtBtn = (d.status === 'delivered' && d.paymentStatus === 'debt') ? `
+        <button type="button" class="btn-success" onclick="askSettleDebt(${idx})">💵 تسديد الدين (تحويل إلى كاش)</button>
+      ` : '';
+
+      const card = document.createElement('div');
+      card.id = `allCard_${idx}`;
+      card.className = `device-card ${theme.cardClass} ${isExpanded ? 'expanded' : ''}`;
+      card.innerHTML = `
+        ${buildCollapsedHeader(d, theme.statusClass, theme.badgeText)}
+        <div class="card-body-content">
+          ${buildCleanInfoTable(d, idx, isReadyState)}
+
+          <div class="section-block block-device">
+            <span class="section-block-title">نوع الجهاز:</span>
+            <span class="section-block-text">${d.deviceType || 'غير محدد'}</span>
+          </div>
+
+          <div class="section-block block-issue">
+            <span class="section-block-title">العطل:</span>
+            <span class="section-block-text">${d.issue || '-'}</span>
+          </div>
+
+          <div class="section-block block-work">
+            <span class="section-block-title">القطع المستبدلة / العمل المنجز:</span>
+            <span class="section-block-text">${d.workDone || '-'}</span>
+          </div>
+
+          <div class="section-block block-cost">
+            <span class="section-block-title">التكلفة:</span>
+            <span class="section-block-text">${d.cost || '-'}</span>
+          </div>
+
+          ${getDeviceHistoryHtml(d)}
+          ${settleDebtBtn}
+
+          <div class="actions-row-3">
+            <button type="button" class="btn-edit" onclick="openEditModal(${idx})">✏️ تعديل</button>
+            <button type="button" class="btn-share" style="padding:10px;" onclick="shareDeviceReport(${idx}, ${isReadyState})">مشاركة التقرير</button>
+            <button type="button" class="btn-danger" onclick="askDeleteDeviceFile(${idx})">🗑️ حذف</button>
+          </div>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  function openEditModal(devIdx) {
+    const dev = devices[devIdx];
+    if (!dev) return;
+
+    clearAllErrorsIn(document.getElementById('editDeviceModal'));
+    document.getElementById('editReceiptLabel').innerText = dev.receiptId;
+    document.getElementById('editDeviceIndex').value = devIdx;
+    document.getElementById('editBarcode').value = dev.barcode || '';
+    document.getElementById('editName').value = dev.name || '';
+    document.getElementById('editPhone').value = dev.phone || '';
+    document.getElementById('editDeviceType').value = dev.deviceType || '';
+    document.getElementById('editCustomerType').value = normalizeCustomerType(dev.customerType);
+    document.getElementById('editIssue').value = dev.issue || '';
+    document.getElementById('editWorkDone').value = dev.workDone || '';
+    document.getElementById('editCost').value = dev.cost || '';
+    document.getElementById('editStatus').value = dev.status || 'open';
+    document.getElementById('editPaymentStatus').value = dev.paymentStatus || '';
+
+    document.getElementById('editDeviceModal').classList.add('open');
+  }
+
+  function closeEditModal() {
+    document.getElementById('editDeviceModal').classList.remove('open');
+  }
+
+  function saveEditedDevice() {
+    const devIdx = parseInt(document.getElementById('editDeviceIndex').value, 10);
+    if (isNaN(devIdx) || !devices[devIdx]) return;
+
+    const nameEl = document.getElementById('editName');
+    const typeEl = document.getElementById('editDeviceType');
+    const issueEl = document.getElementById('editIssue');
+
+    let firstInvalid = null;
+    if (!nameEl.value.trim()) {
+      showFieldError(nameEl, '⚠️ يرجى كتابة اسم الزبون');
+      if (!firstInvalid) firstInvalid = nameEl;
+    } else {
+      clearFieldError(nameEl);
+    }
+
+    if (!typeEl.value.trim()) {
+      showFieldError(typeEl, '⚠️ يرجى كتابة نوع الجهاز');
+      if (!firstInvalid) firstInvalid = typeEl;
+    } else {
+      clearFieldError(typeEl);
+    }
+
+    if (!issueEl.value.trim()) {
+      showFieldError(issueEl, '⚠️ يرجى كتابة العطل');
+      if (!firstInvalid) firstInvalid = issueEl;
+    } else {
+      clearFieldError(issueEl);
+    }
+
+    if (firstInvalid) {
+      firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      firstInvalid.focus();
+      return;
+    }
+
+    const dev = devices[devIdx];
+
+    dev.barcode = document.getElementById('editBarcode').value.trim();
+    dev.name = nameEl.value.trim();
+    dev.phone = document.getElementById('editPhone').value.trim();
+    dev.deviceType = typeEl.value.trim();
+    dev.customerType = normalizeCustomerType(document.getElementById('editCustomerType').value);
+    dev.issue = issueEl.value.trim();
+    dev.workDone = document.getElementById('editWorkDone').value.trim();
+    dev.cost = document.getElementById('editCost').value.trim();
+    dev.status = document.getElementById('editStatus').value;
+    dev.paymentStatus = dev.status === 'delivered' ? document.getElementById('editPaymentStatus').value : '';
+
+    if (dev.status === 'closed' && !dev.dateClosed) dev.dateClosed = getCleanDate();
+    if (dev.status === 'delivered' && !dev.dateDelivered) dev.dateDelivered = getCleanDate();
+
+    devices[devIdx] = dev;
+    localStorage.setItem('dimashqi_devices', JSON.stringify(devices));
+
+    updateCounter();
+    closeEditModal();
+    refreshActiveViews(devIdx);
+  }
+
+  function askDeleteDeviceFile(devIdx) {
+    const dev = devices[devIdx];
+    if (!dev) return;
+
+    showConfirm(`هل أنت متأكد من حذف ملف الجهاز رقم ${dev.receiptId} للزبون (${dev.name}) نهائياً؟`, '🗑️', () => {
+      deleteDeviceFile(devIdx);
+    });
+  }
+
+  function deleteDeviceFile(devIdx) {
+    if (isNaN(devIdx) || !devices[devIdx]) return;
+    devices.splice(devIdx, 1);
+    updateCounter();
+    refreshActiveViews();
+  }
+
+  async function startScan(targetInputId, callback) {
+    const modal = document.getElementById('scannerModal');
+    const statusText = document.getElementById('scannerStatusText');
+    modal.classList.add('open');
+    statusText.innerText = 'جاري قراءة الكود بسرعة عالية...';
+
+    if (html5QrCode) {
+      try { await html5QrCode.stop(); } catch (e) {}
+      html5QrCode = null;
+    }
+
+    html5QrCode = new Html5Qrcode("qr-reader");
+
+    const scanConfig = {
+      fps: 35,
+      qrbox: { width: 280, height: 160 },
+      aspectRatio: 1.333
+    };
+
+    const onScanSuccess = (decodedText) => {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.08);
+      } catch (e) {}
+
+      document.getElementById(targetInputId).value = decodedText;
+      stopScan();
+      if (callback) callback();
+    };
+
+    try {
+      await html5QrCode.start({ facingMode: "environment" }, scanConfig, onScanSuccess, () => {});
+    } catch (err1) {
+      try {
+        const cameras = await Html5Qrcode.getCameras();
+        if (cameras && cameras.length > 0) {
+          const backCam = cameras[cameras.length - 1].id;
+          await html5QrCode.start(backCam, scanConfig, onScanSuccess, () => {});
+        } else {
+          throw new Error('No camera');
+        }
+      } catch (err2) {
+        statusText.innerHTML = 'تعذر تشغيل الكاميرا المباشرة. يرجى التأكد من السماح للمتصفح باستخدام الكاميرا.';
+      }
+    }
+  }
+
+  function stopScan() {
+    document.getElementById('scannerModal').classList.remove('open');
+    if (html5QrCode) {
+      html5QrCode.stop().then(() => {
+        html5QrCode = null;
+      }).catch(() => {
+        html5QrCode = null;
+      });
+    }
+  }
+
+  function exportBackup() {
+    const blob = new Blob([JSON.stringify(devices, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `dimashqi_backup_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+  }
+
+  function importBackup(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        devices = JSON.parse(ev.target.result);
+        sanitizeReceiptIds();
+        updateCounter();
+        refreshActiveViews();
+      } catch {}
+    };
+    reader.readAsText(file);
+  }
+
+
+  // إعداد Supabase: ضع بيانات مشروعك في الملف config.js المرفق.
+  const SUPABASE_URL = window.DIMASHQI_SUPABASE_URL || 'YOUR_SUPABASE_PROJECT_URL';
+  const SUPABASE_ANON_KEY = window.DIMASHQI_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY';
+  let supabaseClient = null;
+  let syncReady = false;
+  let applyingRemoteData = false;
+  let syncTimer = null;
+  let sharedChannel = null;
+  const originalStorageSetItem = Storage.prototype.setItem;
+  Storage.prototype.setItem = function(key, value) {
+    originalStorageSetItem.call(this, key, value);
+    if (key === 'dimashqi_devices' && syncReady && !applyingRemoteData) scheduleSharedSync();
+  };
+
+  function authMessage(message, isError = true) {
+    const el = document.getElementById('authMessage');
+    if (el) { el.textContent = message || ''; el.style.color = isError ? '#b91c1c' : '#15803d'; }
+  }
+  function getSupabase() {
+    if (!window.supabase || !window.supabase.createClient) throw new Error('تعذر تحميل مكتبة Supabase. تحقق من اتصال الإنترنت.');
+    if (SUPABASE_URL.includes('YOUR_') || SUPABASE_ANON_KEY.includes('YOUR_')) throw new Error('أضف رابط مشروع Supabase ومفتاح anon/publishable في ملف config.js أولاً.');
+    if (!supabaseClient) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    return supabaseClient;
+  }
+  async function signInUser() {
+    try {
+      const client = getSupabase();
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+      if (!email || !password) return authMessage('أدخل البريد الإلكتروني وكلمة المرور.');
+      authMessage('جارٍ تسجيل الدخول...', false);
+      const { error } = await client.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+    } catch (e) { authMessage(e.message || 'تعذر تسجيل الدخول.'); }
+  }
+  async function signUpUser() {
+    try {
+      const client = getSupabase();
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+      if (!email || !password) return authMessage('أدخل البريد الإلكتروني وكلمة المرور.');
+      if (password.length < 8) return authMessage('كلمة المرور يجب ألا تقل عن 8 أحرف.');
+      authMessage('جارٍ إنشاء الحساب...', false);
+      const { data, error } = await client.auth.signUp({ email, password });
+      if (error) throw error;
+      if (!data.session) authMessage('تم إنشاء الحساب. افتح بريدك لتأكيده ثم سجّل الدخول.', false);
+    } catch (e) { authMessage(e.message || 'تعذر إنشاء الحساب.'); }
+  }
+  async function signOutUser() {
+    if (!supabaseClient) return;
+    syncReady = false;
+    if (sharedChannel) { await supabaseClient.removeChannel(sharedChannel); sharedChannel = null; }
+    await supabaseClient.auth.signOut();
+    document.getElementById('accountPill').style.display = 'none';
+    document.getElementById('authOverlay').style.display = 'flex';
+    authMessage('تم تسجيل الخروج.', false);
+  }
+  function scheduleSharedSync() {
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(syncSharedDevices, 450);
+  }
+  async function syncSharedDevices() {
+    if (!syncReady || !supabaseClient) return;
+    try {
+      const payload = { id: 'main', devices: JSON.parse(localStorage.getItem('dimashqi_devices') || '[]'), updated_at: new Date().toISOString() };
+      const { error } = await supabaseClient.from('shared_workspace').upsert(payload, { onConflict: 'id' });
+      if (error) console.error('Supabase sync:', error);
+    } catch (e) { console.error('تعذرت مزامنة البيانات:', e); }
+  }
+  async function loadSharedWorkspace() {
+    const client = getSupabase();
+    syncReady = false;
+    const { data, error } = await client.from('shared_workspace').select('devices').eq('id', 'main').maybeSingle();
+    if (error) throw error;
+    if (data && Array.isArray(data.devices)) {
+      applyingRemoteData = true;
+      devices = data.devices;
+      originalStorageSetItem.call(localStorage, 'dimashqi_devices', JSON.stringify(devices));
+      applyingRemoteData = false;
+    } else {
+      // أول مستخدم ينشئ مساحة العمل؛ يحتفظ بالبيانات المحلية الموجودة على جهازه.
+      syncReady = true;
+      await syncSharedDevices();
+    }
+    syncReady = true;
+    updateCounter();
+    refreshActiveViews();
+    if (sharedChannel) await client.removeChannel(sharedChannel);
+    sharedChannel = client.channel('dimashqi-shared-workspace')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'shared_workspace', filter: 'id=eq.main' }, payload => {
+        if (payload.new && Array.isArray(payload.new.devices)) {
+          applyingRemoteData = true;
+          devices = payload.new.devices;
+          originalStorageSetItem.call(localStorage, 'dimashqi_devices', JSON.stringify(devices));
+          applyingRemoteData = false;
+          updateCounter(); refreshActiveViews();
+        }
+      }).subscribe();
+  }
+  async function handleAuthSession(session) {
+    if (!session) {
+      syncReady = false;
+      document.getElementById('authOverlay').style.display = 'flex';
+      document.getElementById('accountPill').style.display = 'none';
+      return;
+    }
+    try {
+      authMessage('');
+      await loadSharedWorkspace();
+      document.getElementById('authOverlay').style.display = 'none';
+      document.getElementById('accountEmail').textContent = session.user.email || 'موظف';
+      document.getElementById('accountPill').style.display = 'block';
+    } catch (e) {
+      syncReady = false;
+      document.getElementById('authOverlay').style.display = 'flex';
+      authMessage('فشل تحميل بيانات المركز: ' + (e.message || 'تحقق من إعدادات قاعدة البيانات.'));
+    }
+  }
+  async function initializeCloudApp() {
+    try {
+      const client = getSupabase();
+      const { data: { session } } = await client.auth.getSession();
+      await handleAuthSession(session);
+      client.auth.onAuthStateChange((_event, newSession) => { setTimeout(() => handleAuthSession(newSession), 0); });
+    } catch (e) {
+      document.getElementById('authOverlay').style.display = 'flex';
+      authMessage(e.message || 'أكمل إعداد Supabase للبدء.');
+    }
+  }
+  initializeCloudApp();
+  updateCounter();
+</script>
+</body>
+</html>
