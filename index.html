@@ -1189,7 +1189,13 @@
     .auth-card h2{font-size:22px;margin-bottom:8px;color:#0f172a}.auth-card p{color:#475569;font-size:13px;line-height:1.7;margin-bottom:16px}
     .auth-card label{display:block;font-weight:700;font-size:13px;margin:12px 0 6px}.auth-card input{width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:9px;font-size:15px;direction:ltr;text-align:left}
     .auth-actions{display:flex;gap:8px;margin-top:18px}.auth-actions button{flex:1;padding:12px;border:0;border-radius:9px;background:#0284c7;color:#fff;font-weight:800;cursor:pointer}.auth-actions button.secondary{background:#e2e8f0;color:#0f172a}
-    #authMessage{min-height:22px;margin-top:10px;color:#b91c1c;font-size:13px}.account-pill{position:fixed;z-index:1000;top:66px;left:8px;background:#0f172a;color:#fff;padding:6px 9px;border-radius:20px;font-size:11px;display:none;max-width:190px}
+    #authMessage{min-height:22px;margin-top:10px;color:#b91c1c;font-size:13px}.account-pill{position:fixed;z-index:1000;top:66px;left:8px;background:#0f172a;color:#fff;padding:6px 9px;border-radius:20px;font-size:11px;display:none;max-width:min(190px,calc(100vw - 16px))}
+    .auth-card{border:1px solid #e2e8f0}
+    .auth-card h2{font-size:clamp(21px,5vw,25px);font-weight:900}
+    .auth-card p{font-size:14px}
+    .auth-card input{min-height:46px}
+    .auth-actions button{min-height:46px;font-size:14px}
+    @media(max-width:480px){.auth-overlay{padding:14px;align-items:center}.auth-card{max-width:100%;padding:22px 18px;border-radius:16px}.auth-actions{flex-direction:column}.auth-actions button{width:100%}.auth-card small{display:block;margin-top:8px}}
 
   </style>
 </head>
@@ -1206,7 +1212,7 @@
     <small style="color:#64748b;line-height:1.6">يجب أن ينشئ كل موظف حسابه الخاص. يمكن للمدير تعطيل التسجيل العام لاحقاً من إعدادات Supabase بعد إنشاء الحسابات المطلوبة.</small>
   </div>
 </div>
-<div id="accountPill" class="account-pill"><span id="accountEmail"></span> · <span id="syncStatus" role="status" aria-live="polite">غير متصل</span> · <button onclick="signOutUser()" style="background:none;border:0;color:#bae6fd;font-weight:800;cursor:pointer">خروج</button></div>
+<div id="accountPill" class="account-pill"><span id="accountEmail"></span> · <button onclick="signOutUser()" style="background:none;border:0;color:#bae6fd;font-weight:800;cursor:pointer">خروج</button></div>
 
 
 <div class="app-container">
@@ -3249,6 +3255,8 @@
       matchedDuplicateDevice.paymentStatus = '';
       matchedDuplicateDevice.dateReturned = getCleanDate();
 
+      // احفظ التعديل محلياً ليتم التقاطه ومزامنته مع Supabase.
+      localStorage.setItem('dimashqi_devices', JSON.stringify(devices));
       updateCounter();
       resetReceiveForm();
       goHome();
@@ -3276,6 +3284,8 @@
       dateIn: getCleanDate()
     });
 
+    // الحفظ كان مفقوداً هنا: من دونه يبقى الجهاز بالذاكرة فقط ولا يظهر بعد إعادة التحميل أو على الأجهزة الأخرى.
+    localStorage.setItem('dimashqi_devices', JSON.stringify(devices));
     updateCounter();
     resetReceiveForm();
     goHome();
@@ -4238,6 +4248,7 @@
   function deleteDeviceFile(devIdx) {
     if (isNaN(devIdx) || !devices[devIdx]) return;
     devices.splice(devIdx, 1);
+    localStorage.setItem('dimashqi_devices', JSON.stringify(devices));
     updateCounter();
     refreshActiveViews();
   }
@@ -4343,10 +4354,6 @@
     if (key === 'dimashqi_devices' && syncReady && !applyingRemoteData) scheduleSharedSync();
   };
 
-  function setSyncStatus(message, isError = false) {
-    const el = document.getElementById('syncStatus');
-    if (el) { el.textContent = message; el.style.color = isError ? '#fecaca' : '#bbf7d0'; }
-  }
   function authMessage(message, isError = true) {
     const el = document.getElementById('authMessage');
     if (el) { el.textContent = message || ''; el.style.color = isError ? '#b91c1c' : '#15803d'; }
@@ -4396,18 +4403,15 @@
   }
   async function syncSharedDevices() {
     if (!syncReady || !supabaseClient) return;
-    setSyncStatus('جارٍ المزامنة…');
     try {
       const payload = { id: 'main', devices: JSON.parse(localStorage.getItem('dimashqi_devices') || '[]'), updated_at: new Date().toISOString() };
       const { error } = await supabaseClient.from('shared_workspace').upsert(payload, { onConflict: 'id' });
-      if (error) throw error;
-      setSyncStatus('تمت المزامنة ✓');
-    } catch (e) { console.error('تعذرت مزامنة البيانات:', e); setSyncStatus('فشلت المزامنة: ' + (e.message || 'خطأ'), true); }
+      if (error) console.error('Supabase sync:', error);
+    } catch (e) { console.error('تعذرت مزامنة البيانات:', e); }
   }
   async function loadSharedWorkspace() {
     const client = getSupabase();
     syncReady = false;
-    setSyncStatus('جارٍ تحميل البيانات…');
     const { data, error } = await client.from('shared_workspace').select('devices').eq('id', 'main').maybeSingle();
     if (error) throw error;
     if (data && Array.isArray(data.devices)) {
@@ -4421,7 +4425,6 @@
       await syncSharedDevices();
     }
     syncReady = true;
-    setSyncStatus('متصل ✓');
     updateCounter();
     refreshActiveViews();
     if (sharedChannel) await client.removeChannel(sharedChannel);
@@ -4432,13 +4435,9 @@
           devices = payload.new.devices;
           originalStorageSetItem.call(localStorage, 'dimashqi_devices', JSON.stringify(devices));
           applyingRemoteData = false;
-          setSyncStatus('وصل تحديث من جهاز آخر ✓');
           updateCounter(); refreshActiveViews();
         }
-      }).subscribe((status) => {
-        if (status === 'SUBSCRIBED') setSyncStatus('متصل - التحديث الفوري يعمل ✓');
-        else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') setSyncStatus('المزامنة الفورية غير متاحة', true);
-      });
+      }).subscribe();
   }
   async function handleAuthSession(session) {
     if (!session) {

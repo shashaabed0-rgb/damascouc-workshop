@@ -1,0 +1,11 @@
+{
+  "name": "مركز الدمشقي للصيانة",
+  "short_name": "مركز الدمشقي",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#e2e8f0",
+  "theme_color": "#0284c7"
+}

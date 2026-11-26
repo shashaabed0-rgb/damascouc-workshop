@@ -25,3 +25,18 @@ grant select, insert, update on public.shared_workspace to authenticated;
 
 -- فعّل Realtime للجدول من Supabase Dashboard > Database > Publications
 -- إذا لم يكن مضافاً تلقائياً، أضفه إلى publication supabase_realtime.
+
+
+-- تفعيل بث التغييرات الفورية للجدول (آمن عند إعادة تنفيذ الملف).
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'shared_workspace'
+  ) then
+    alter publication supabase_realtime add table public.shared_workspace;
+  end if;
+end $$;
